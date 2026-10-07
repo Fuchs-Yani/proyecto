@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
         $beneficiarioRole = Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web']);
+        $profesorRole = Role::firstOrCreate(['name' => 'profesor', 'guard_name' => 'web']);
 
         // Asegura que existan los permisos usados (Shield v4: "Accion:Modelo")
         $needed = [
@@ -67,6 +68,17 @@ class DatabaseSeeder extends Seeder
             'ViewAny:Assignment',
             'View:Assignment',
             'Update:Assignment',
+        ]);
+
+        // PROFESOR: ve ideas/adjuntos, guía y actualiza postulaciones
+        $profesorRole->syncPermissions([
+            'ViewAny:ProjectIdea',
+            'View:ProjectIdea',
+            'ViewAny:Assignment',
+            'View:Assignment',
+            'Update:Assignment',
+            'ViewAny:Attachment',
+            'View:Attachment',
         ]);
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
         // 3. Usuario Administrador (Acceso total a Filament)
