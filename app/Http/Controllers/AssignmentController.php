@@ -8,6 +8,25 @@ use App\Models\ProjectIdea;
 
 class AssignmentController extends Controller
 {
+    // GET /assignments - ver según rol
+    public function index()
+    {
+        $this->authorize('viewAny', Assignment::class);
+        $user = auth()->user();
+
+        if ($user->hasRole('student')) {
+            $assignments = Assignment::with('projectIdea')->where('student_id', $user->id)->latest()->paginate(10);
+        } elseif ($user->hasRole('beneficiario')) {
+            $assignments = Assignment::with(['projectIdea', 'student'])
+                ->whereHas('projectIdea', fn ($q) => $q->where('organizer_id', $user->id))
+                ->latest()->paginate(10);
+        } else {
+            $assignments = Assignment::with(['projectIdea', 'student'])->latest()->paginate(10);
+        }
+
+        return view('assignments.index', compact('assignments'));
+    }
+
     // POST /ideas/{projectIdea}/apply - postularse
     public function store(StoreAssignmentRequest $request, ProjectIdea $projectIdea)
     {

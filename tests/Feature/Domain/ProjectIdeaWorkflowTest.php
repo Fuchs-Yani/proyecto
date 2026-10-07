@@ -14,7 +14,7 @@ beforeEach(function () {
     foreach ($perms as $p) {
         Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
     }
-    Role::firstOrCreate(['name' => 'organization', 'guard_name' => 'web'])
+    Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web'])
         ->syncPermissions(['ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea']);
     Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web'])
         ->syncPermissions(['ViewAny:ProjectIdea', 'View:ProjectIdea', 'ViewAny:Assignment', 'View:Assignment', 'Create:Assignment']);
@@ -22,9 +22,9 @@ beforeEach(function () {
         ->syncPermissions(Permission::all());
 });
 
-test('organization can list available ideas', function () {
+test('beneficiario can list available ideas', function () {
     $org = User::factory()->create();
-    $org->assignRole('organization');
+    $org->assignRole('beneficiario');
     ProjectIdea::factory()->create(['organizer_id' => $org->id, 'status' => 'available']);
 
     $this->actingAs($org)->get('/ideas')->assertOk();
@@ -32,7 +32,7 @@ test('organization can list available ideas', function () {
 
 test('student can apply once to an idea', function () {
     $org = User::factory()->create();
-    $org->assignRole('organization');
+    $org->assignRole('beneficiario');
     $student = User::factory()->create();
     $student->assignRole('student');
     $idea = ProjectIdea::factory()->create(['organizer_id' => $org->id, 'status' => 'available']);

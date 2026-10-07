@@ -27,26 +27,43 @@ class DatabaseSeeder extends Seeder
         // 2. Crear los roles principales
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
-        $orgRole = Role::firstOrCreate(['name' => 'organization', 'guard_name' => 'web']);
+        $beneficiarioRole = Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web']);
+
+        // Asegura que existan los permisos usados (Shield v4: "Accion:Modelo")
+        $needed = [
+            'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea', 'Delete:ProjectIdea',
+            'ViewAny:Assignment', 'View:Assignment', 'Create:Assignment', 'Update:Assignment', 'Delete:Assignment',
+            'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Delete:Attachment',
+        ];
+        foreach ($needed as $p) {
+            Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
+        }
 
         $adminRole->syncPermissions(Permission::all());
 
+        // STUDENT: ve ideas, se postula/retira, descarga adjuntos
         $studentRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
             'ViewAny:Assignment',
             'View:Assignment',
             'Create:Assignment',
+            'Delete:Assignment',
+            'ViewAny:Attachment',
+            'View:Attachment',
         ]);
 
-        $orgRole->syncPermissions([
+        // BENEFICIARIO: gestiona SUS ideas/adjuntos, ve/actualiza postulaciones recibidas
+        $beneficiarioRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
             'Create:ProjectIdea',
             'Update:ProjectIdea',
+            'Delete:ProjectIdea',
             'ViewAny:Attachment',
             'View:Attachment',
             'Create:Attachment',
+            'Delete:Attachment',
             'ViewAny:Assignment',
             'View:Assignment',
             'Update:Assignment',
@@ -72,15 +89,15 @@ class DatabaseSeeder extends Seeder
         );
         $student->assignRole($studentRole);
 
-        // 5. Usuario Organización
+        // 5. Usuario Beneficiario
         $org = User::firstOrCreate(
-            ['email' => 'ong@test.com'],
+            ['email' => 'beneficiario@test.com'],
             [
-                'name' => 'Organización de Prueba',
+                'name' => 'Beneficiario de Prueba',
                 'password' => Hash::make('password123'),
             ]
         );
-        $org->assignRole($orgRole);
+        $org->assignRole($beneficiarioRole);
 
         // 6. Datos demo (solo si no hay ideas)
         if (ProjectIdea::count() === 0) {

@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{ProjectIdeaController,AssignmentController,AttachmentController};
 
 Route::get('/', function () {
-    return view('welcome');
+    $finished = App\Models\ProjectIdea::where('status', 'completed')->with('organizer')->latest()->take(3)->get();
+
+    return view('welcome', compact('finished'));
 });
 
 Route::get('/dashboard', function () {
@@ -17,12 +19,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // TODOS los roles: ver ideas
     Route::get('/ideas', [ProjectIdeaController::class, 'index'])->name('ideas.index');
     Route::get('/ideas/{projectIdea}', [ProjectIdeaController::class, 'show'])->name('ideas.show');
+    Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+    Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+    // STUDENT (+admin): postularse / retirar
     Route::post('/ideas/{projectIdea}/apply', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
+    // ORGANIZATION (+admin): subir / borrar adjuntos propios
     Route::post('/ideas/{projectIdea}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
-    Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
 });
 

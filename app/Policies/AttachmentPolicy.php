@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Attachment;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class AttachmentPolicy
 {
-    use HandlesAuthorization;
-    
+    use \Illuminate\Auth\Access\HandlesAuthorization;
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:Attachment');
@@ -29,12 +28,20 @@ class AttachmentPolicy
 
     public function update(AuthUser $authUser, Attachment $attachment): bool
     {
-        return $authUser->can('Update:Attachment');
+        if (! $authUser->can('Update:Attachment')) {
+            return false;
+        }
+
+        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $attachment->projectIdea?->organizer_id === $authUser->id);
     }
 
     public function delete(AuthUser $authUser, Attachment $attachment): bool
     {
-        return $authUser->can('Delete:Attachment');
+        if (! $authUser->can('Delete:Attachment')) {
+            return false;
+        }
+
+        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $attachment->projectIdea?->organizer_id === $authUser->id);
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -71,5 +78,4 @@ class AttachmentPolicy
     {
         return $authUser->can('Reorder:Attachment');
     }
-
 }

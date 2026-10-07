@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Assignment;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class AssignmentPolicy
 {
-    use HandlesAuthorization;
-    
+    use \Illuminate\Auth\Access\HandlesAuthorization;
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:Assignment');
@@ -19,7 +18,20 @@ class AssignmentPolicy
 
     public function view(AuthUser $authUser, Assignment $assignment): bool
     {
-        return $authUser->can('View:Assignment');
+        if (! $authUser->can('View:Assignment')) {
+            return false;
+        }
+        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('admin')) {
+            return true;
+        }
+        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('student')) {
+            return $assignment->student_id === $authUser->id;
+        }
+        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('beneficiario')) {
+            return $assignment->projectIdea?->organizer_id === $authUser->id;
+        }
+
+        return true;
     }
 
     public function create(AuthUser $authUser): bool
@@ -29,12 +41,23 @@ class AssignmentPolicy
 
     public function update(AuthUser $authUser, Assignment $assignment): bool
     {
-        return $authUser->can('Update:Assignment');
+        if (! $authUser->can('Update:Assignment')) {
+            return false;
+        }
+
+        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $assignment->projectIdea?->organizer_id === $authUser->id);
     }
 
     public function delete(AuthUser $authUser, Assignment $assignment): bool
     {
-        return $authUser->can('Delete:Assignment');
+        if (! $authUser->can('Delete:Assignment')) {
+            return false;
+        }
+        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('admin')) {
+            return true;
+        }
+
+        return $assignment->student_id === $authUser->id;
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -71,5 +94,4 @@ class AssignmentPolicy
     {
         return $authUser->can('Reorder:Assignment');
     }
-
 }

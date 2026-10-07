@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\ProjectIdea;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class ProjectIdeaPolicy
 {
-    use HandlesAuthorization;
-    
+    use \Illuminate\Auth\Access\HandlesAuthorization;
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:ProjectIdea');
@@ -29,12 +28,20 @@ class ProjectIdeaPolicy
 
     public function update(AuthUser $authUser, ProjectIdea $projectIdea): bool
     {
-        return $authUser->can('Update:ProjectIdea');
+        if (! $authUser->can('Update:ProjectIdea')) {
+            return false;
+        }
+
+        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $projectIdea->organizer_id === $authUser->id);
     }
 
     public function delete(AuthUser $authUser, ProjectIdea $projectIdea): bool
     {
-        return $authUser->can('Delete:ProjectIdea');
+        if (! $authUser->can('Delete:ProjectIdea')) {
+            return false;
+        }
+
+        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $projectIdea->organizer_id === $authUser->id);
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -71,5 +78,4 @@ class ProjectIdeaPolicy
     {
         return $authUser->can('Reorder:ProjectIdea');
     }
-
 }

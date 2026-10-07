@@ -12,7 +12,7 @@ beforeEach(function () {
     }
     Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web'])
         ->syncPermissions(['ViewAny:Assignment', 'View:Assignment', 'Create:Assignment', 'ViewAny:ProjectIdea', 'View:ProjectIdea']);
-    Role::firstOrCreate(['name' => 'organization', 'guard_name' => 'web'])
+    Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web'])
         ->syncPermissions(['ViewAny:Assignment', 'View:Assignment', 'Update:Assignment']);
 });
 

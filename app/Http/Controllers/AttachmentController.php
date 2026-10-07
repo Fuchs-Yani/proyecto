@@ -14,7 +14,7 @@ class AttachmentController extends Controller
     {
         $this->authorize('create', Attachment::class);
 
-        if (auth()->user()->hasRole('organization') && $projectIdea->organizer_id !== auth()->id()) {
+        if (auth()->user()->hasRole('beneficiario') && $projectIdea->organizer_id !== auth()->id()) {
             abort(403, 'Solo puedes subir archivos a tus propias ideas.');
         }
 

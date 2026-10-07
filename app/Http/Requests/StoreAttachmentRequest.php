@@ -8,7 +8,7 @@ class StoreAttachmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'organization']);
+        return auth()->check() && auth()->user()->hasAnyRole(['admin', 'beneficiario']);
     }
 
     /**

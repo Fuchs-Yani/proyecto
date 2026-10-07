@@ -13,13 +13,13 @@ beforeEach(function () {
     foreach (['View:Attachment', 'ViewAny:Attachment', 'Create:Attachment', 'ViewAny:ProjectIdea', 'View:ProjectIdea'] as $p) {
         Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
     }
-    Role::firstOrCreate(['name' => 'organization', 'guard_name' => 'web'])
+    Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web'])
         ->syncPermissions(['View:Attachment', 'ViewAny:Attachment', 'Create:Attachment', 'ViewAny:ProjectIdea', 'View:ProjectIdea']);
 });
 
-test('organization can upload attachment with validation', function () {
+test('beneficiario can upload attachment with validation', function () {
     $org = User::factory()->create();
-    $org->assignRole('organization');
+    $org->assignRole('beneficiario');
     $idea = ProjectIdea::factory()->create(['organizer_id' => $org->id]);
 
     $file = UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf');
@@ -32,7 +32,7 @@ test('organization can upload attachment with validation', function () {
 
 test('upload rejects invalid mime', function () {
     $org = User::factory()->create();
-    $org->assignRole('organization');
+    $org->assignRole('beneficiario');
     $idea = ProjectIdea::factory()->create(['organizer_id' => $org->id]);
 
     $file = UploadedFile::fake()->create('mal.exe', 100, 'application/x-msdownload');
