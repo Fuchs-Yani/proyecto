@@ -23,6 +23,14 @@ class AssignmentResource extends Resource
     // 3. Configuración del Formulario (Crear y Editar)
     public static function form(Schema $schema): Schema
     {
+        $transitions = [
+            'applied' => ['applied', 'accepted', 'rejected'],
+            'accepted' => ['accepted', 'in_progress', 'rejected'],
+            'in_progress' => ['in_progress', 'completed'],
+            'rejected' => ['rejected'],
+            'completed' => ['completed'],
+        ];
+
         return $schema
             ->components([
                 Forms\Components\Select::make('project_idea_id')
@@ -35,6 +43,9 @@ class AssignmentResource extends Resource
                     ->relationship('student', 'name')
                     ->searchable()
                     ->preload()
+                    ->default(fn () => auth()->id())
+                    ->disabled(fn (string $operation) => $operation === 'create' && ! auth()->user()?->hasRole('admin'))
+                    ->dehydrated()
                     ->required(),
 
                 Forms\Components\Select::make('status')
@@ -46,7 +57,31 @@ class AssignmentResource extends Resource
                         'completed' => 'Completado',
                     ])
                     ->default('applied')
+                    ->disableOptionWhen(function (string $value, ?Assignment $record) use ($transitions): bool {
+                        if (! $record?->exists) {
+                            return $value !== 'applied'; // al crear solo applied
+                        }
+                        $allowed = $transitions[$record->status] ?? [$record->status];
+
+                        return ! in_array($value, $allowed, true);
+                    })
                     ->required(),
+
+                Forms\Components\DateTimePicker::make('applied_at')
+                    ->label('Postulado el')
+                    ->default(now())
+                    ->disabled()
+                    ->dehydrated(),
+
+                Forms\Components\DateTimePicker::make('started_at')
+                    ->label('Iniciado el')
+                    ->disabled()
+                    ->dehydrated(),
+
+                Forms\Components\DateTimePicker::make('finished_at')
+                    ->label('Finalizado el')
+                    ->disabled()
+                    ->dehydrated(),
             ]);
     }
 
@@ -103,6 +138,30 @@ class AssignmentResource extends Resource
              ])
             ->actions([
                 EditAction::make(),
+                Tables\Actions\Action::make('accept')
+                    ->label('Aceptar')
+                    ->icon('heroicon-o-check')
+                    ->color('success')
+                    ->visible(fn (Assignment $record) => $record->status === 'applied')
+                    ->action(fn (Assignment $record) => $record->update(['status' => 'accepted'])),
+                Tables\Actions\Action::make('reject')
+                    ->label('Rechazar')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->visible(fn (Assignment $record) => in_array($record->status, ['applied', 'accepted'], true))
+                    ->action(fn (Assignment $record) => $record->update(['status' => 'rejected'])),
+                Tables\Actions\Action::make('start')
+                    ->label('Iniciar')
+                    ->icon('heroicon-o-play')
+                    ->color('warning')
+                    ->visible(fn (Assignment $record) => $record->status === 'accepted')
+                    ->action(fn (Assignment $record) => $record->update(['status' => 'in_progress', 'started_at' => now()])),
+                Tables\Actions\Action::make('complete')
+                    ->label('Completar')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->visible(fn (Assignment $record) => $record->status === 'in_progress')
+                    ->action(fn (Assignment $record) => $record->update(['status' => 'completed', 'finished_at' => now()])),
             ]);
     }
 

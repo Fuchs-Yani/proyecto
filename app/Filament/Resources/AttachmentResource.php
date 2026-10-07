@@ -36,12 +36,25 @@ class AttachmentResource extends Resource
                     ->maxLength(255),
 
                 Forms\Components\FileUpload::make('file_path')
+                    ->label('Archivo')
+                    ->disk('public')
                     ->directory('attachments')
+                    ->acceptedFileTypes(['application/pdf', 'image/png', 'image/jpeg', 'application/zip'])
+                    ->maxSize(10240)
+                    ->downloadable()
+                    ->openUrlInNewTab()
                     ->required(),
 
                 Forms\Components\TextInput::make('file_type')
                     ->placeholder('ej: pdf, png, zip')
-                    ->required(),
+                    ->disabled()
+                    ->dehydrated(),
+
+                Forms\Components\DateTimePicker::make('uploaded_at')
+                    ->label('Subido el')
+                    ->default(now())
+                    ->disabled()
+                    ->dehydrated(),
             ]);
     }
 
@@ -68,6 +81,11 @@ class AttachmentResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
+                Tables\Actions\Action::make('download')
+                    ->label('Descargar')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn (Attachment $record) => \Illuminate\Support\Facades\Storage::disk('public')->url($record->file_path))
+                    ->openUrlInNewTab(),
             ]);
     }
 

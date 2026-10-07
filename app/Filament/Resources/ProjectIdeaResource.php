@@ -24,6 +24,9 @@ class ProjectIdeaResource extends Resource
             ->components([
                 Forms\Components\Select::make('organizer_id')
                     ->relationship('organizer', 'name')
+                    ->default(fn () => auth()->id())
+                    ->disabled(fn (string $operation) => $operation === 'create' && ! auth()->user()?->hasRole('admin'))
+                    ->dehydrated()
                     ->required(),
                 Forms\Components\TextInput::make('title')
                     ->required()
