@@ -4,11 +4,12 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AssignmentResource\Pages;
 use App\Models\Assignment;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -18,7 +19,7 @@ class AssignmentResource extends Resource
     protected static ?string $model = Assignment::class;
 
     // 2. Icono del Menú Lateral (icono de usuario/check o lista de tareas)
-   protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-user-group';
+    protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-user-group';
 
     // 3. Configuración del Formulario (Crear y Editar)
     public static function form(Schema $schema): Schema
@@ -49,22 +50,22 @@ class AssignmentResource extends Resource
                     ->required(),
 
                 Forms\Components\Select::make('status')
-                    ->options([
-                        'applied' => 'Postulado',
-                        'accepted' => 'Aceptado',
-                        'rejected' => 'Rechazado',
-                        'in_progress' => 'En Progreso',
-                        'completed' => 'Completado',
-                    ])
-                    ->default('applied')
-                    ->disableOptionWhen(function (string $value, ?Assignment $record) use ($transitions): bool {
+                    ->options(function (?Assignment $record) use ($transitions): array {
+                        $all = [
+                            'applied' => 'Postulado',
+                            'accepted' => 'Aceptado',
+                            'rejected' => 'Rechazado',
+                            'in_progress' => 'En Progreso',
+                            'completed' => 'Completado',
+                        ];
                         if (! $record?->exists) {
-                            return $value !== 'applied'; // al crear solo applied
+                            return ['applied' => 'Postulado']; // al crear solo applied
                         }
                         $allowed = $transitions[$record->status] ?? [$record->status];
 
-                        return ! in_array($value, $allowed, true);
+                        return array_intersect_key($all, array_flip($allowed));
                     })
+                    ->default('applied')
                     ->required(),
 
                 Forms\Components\DateTimePicker::make('applied_at')
@@ -103,7 +104,7 @@ class AssignmentResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                   ->formatStateUsing(fn (?string $state): ?string => match ($state) {
+                    ->formatStateUsing(fn (?string $state): ?string => match ($state) {
                         'applied' => 'Postulado',
                         'accepted' => 'Aceptado',
                         'in_progress' => 'En Progreso',
@@ -135,28 +136,28 @@ class AssignmentResource extends Resource
                         'in_progress' => 'En Progreso',
                         'completed' => 'Completado',
                     ]),
-             ])
+            ])
             ->actions([
                 EditAction::make(),
-                Tables\Actions\Action::make('accept')
+                Action::make('accept')
                     ->label('Aceptar')
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->visible(fn (Assignment $record) => $record->status === 'applied')
                     ->action(fn (Assignment $record) => $record->update(['status' => 'accepted'])),
-                Tables\Actions\Action::make('reject')
+                Action::make('reject')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->visible(fn (Assignment $record) => in_array($record->status, ['applied', 'accepted'], true))
                     ->action(fn (Assignment $record) => $record->update(['status' => 'rejected'])),
-                Tables\Actions\Action::make('start')
+                Action::make('start')
                     ->label('Iniciar')
                     ->icon('heroicon-o-play')
                     ->color('warning')
                     ->visible(fn (Assignment $record) => $record->status === 'accepted')
                     ->action(fn (Assignment $record) => $record->update(['status' => 'in_progress', 'started_at' => now()])),
-                Tables\Actions\Action::make('complete')
+                Action::make('complete')
                     ->label('Completar')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
