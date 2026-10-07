@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('attachments', function (Blueprint $table) {
             $table->id();
-        $table->foreignId('project_idea_id')->constrained()->cascadeOnDelete();
-            $table->string('file_path'); // Ruta del archivo en storage
-            $table->string('file_name'); // Nombre original del archivo
-            $table->string('mime_type')->nullable(); // image/png, application/pdf, etc.
+            $table->foreignId('project_idea_id')->constrained()->cascadeOnDelete();
+            $table->string('file_path'); 
+            $table->string('file_name'); 
+            $table->string('file_type')->nullable();
+            $table->timestamp('uploaded_at')->nullable(); 
             $table->timestamps();
         });
 

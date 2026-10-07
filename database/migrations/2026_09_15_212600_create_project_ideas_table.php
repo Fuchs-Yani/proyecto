@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('project_ideas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organizer_id')->constrained('users')->cascadeOnDelete();
             $table->string('title');
             $table->text('description');
-            $table->string('status')->default('pendiente');
+            $table->string('status')->default('available');
             $table->timestamps();
         });
     }

@@ -9,6 +9,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class AssignmentResource extends Resource
@@ -67,7 +68,15 @@ class AssignmentResource extends Resource
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                   ->formatStateUsing(fn (?string $state): ?string => match ($state) {
+                        'applied' => 'Postulado',
+                        'accepted' => 'Aceptado',
+                        'in_progress' => 'En Progreso',
+                        'completed' => 'Completado',
+                        'rejected' => 'Rechazado',
+                        default => $state,
+                    })
+                    ->color(fn (?string $state): string => match ($state) {
                         'applied' => 'gray',
                         'accepted' => 'info',
                         'in_progress' => 'warning',
@@ -78,9 +87,20 @@ class AssignmentResource extends Resource
 
                 Tables\Columns\TextColumn::make('applied_at')
                     ->label('Fecha de Postulación')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Filtrar por Estado')
+                    ->options([
+                        'applied' => 'Postulado',
+                        'accepted' => 'Aceptado',
+                        'rejected' => 'Rechazado',
+                        'in_progress' => 'En Progreso',
+                        'completed' => 'Completado',
+                    ]),
+             ])
             ->actions([
                 EditAction::make(),
             ]);
