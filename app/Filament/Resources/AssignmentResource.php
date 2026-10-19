@@ -15,13 +15,13 @@ use Filament\Tables\Table;
 
 class AssignmentResource extends Resource
 {
-    // 1. Modelo de Base de Datos
+    //  Modelo de Base de Datos
     protected static ?string $model = Assignment::class;
 
-    // 2. Icono del Menú Lateral (icono de usuario/check o lista de tareas)
+    // Icono del Menú Lateral (icono de usuario/check o lista de tareas)
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-user-group';
 
-    // 3. Configuración del Formulario (Crear y Editar)
+    //  Configuración del Formulario (Crear y Editar)
     public static function form(Schema $schema): Schema
     {
         $transitions = [
@@ -86,7 +86,7 @@ class AssignmentResource extends Resource
             ]);
     }
 
-    // 4. Configuración de la Tabla de Listado
+    // Configuración de la Tabla de Listado
     public static function table(Table $table): Table
     {
         return $table
@@ -166,7 +166,7 @@ class AssignmentResource extends Resource
             ]);
     }
 
-    // 5. Conexión con las Páginas
+    //  Conexión con las Páginas
     public static function getPages(): array
     {
         return [

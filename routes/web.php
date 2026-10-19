@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     // ORGANIZATION (+admin): subir / borrar adjuntos propios
     Route::post('/ideas/{projectIdea}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
-});
+    Route::get('/proyectos', [ProjectIdeaController::class, 'index'])->name('ideas.index');
+    });
 
 require __DIR__.'/auth.php';
