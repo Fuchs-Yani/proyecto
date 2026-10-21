@@ -3,9 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProjectIdea;
+use Illuminate\Http\Request;
 
 class ProjectIdeaController extends Controller
 {
+    // GET /ideas/crear - formulario para publicar una idea
+    public function create()
+    {
+        $this->authorize('create', ProjectIdea::class);
+
+        return view('ideas.create');
+    }
+
+    // POST /ideas - guarda la idea del beneficiario autenticado
+    public function store(Request $request)
+    {
+        $this->authorize('create', ProjectIdea::class);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string'],
+        ]);
+
+        $idea = ProjectIdea::create([
+            'organizer_id' => auth()->id(),
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'status' => 'available',
+        ]);
+
+        return redirect()
+            ->route('ideas.show', $idea)
+            ->with('status', 'Idea publicada correctamente.');
+    }
     // GET /ideas - invitados ven terminados; usuarios con permiso ven disponibles
     public function index()
     {

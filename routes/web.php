@@ -14,6 +14,12 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Crear idea: solo usuarios autenticados con permiso (beneficiario/admin)
+Route::middleware('auth')->group(function () {
+    Route::get('/ideas/crear', [ProjectIdeaController::class, 'create'])->name('ideas.create');
+    Route::post('/ideas', [ProjectIdeaController::class, 'store'])->name('ideas.store');
+});
+
 // Catálogo público: invitados solo ven proyectos terminados
 Route::get('/ideas', [ProjectIdeaController::class, 'index'])->name('ideas.index');
 Route::get('/ideas/{projectIdea}', [ProjectIdeaController::class, 'show'])->name('ideas.show');

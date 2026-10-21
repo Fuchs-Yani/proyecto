@@ -12,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class AssignmentResource extends Resource
 {
@@ -20,6 +21,21 @@ class AssignmentResource extends Resource
 
     // Icono del Menú Lateral (icono de usuario/check o lista de tareas)
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-user-group';
+
+    // El beneficiario solo ve las postulaciones recibidas en sus ideas
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->hasRole('beneficiario')) {
+            $query->whereHas(
+                'projectIdea',
+                fn (Builder $ideaQuery) => $ideaQuery->where('organizer_id', auth()->id()),
+            );
+        }
+
+        return $query;
+    }
 
     //  Configuración del Formulario (Crear y Editar)
     public static function form(Schema $schema): Schema
@@ -100,6 +116,11 @@ class AssignmentResource extends Resource
                     ->label('Estudiante')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('student.email')
+                    ->label('Correo')
+                    ->searchable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Estado')

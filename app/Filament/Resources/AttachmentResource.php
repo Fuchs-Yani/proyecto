@@ -39,14 +39,15 @@ class AttachmentResource extends Resource
                     ->label('Archivo')
                     ->disk('public')
                     ->directory('attachments')
-                    ->acceptedFileTypes(['application/pdf', 'image/png', 'image/jpeg', 'application/zip'])
+                    ->acceptedFileTypes(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'])
                     ->maxSize(10240)
+                    ->helperText('PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB')
                     ->downloadable()
                     ->openUrlInNewTab()
                     ->required(),
 
                 Forms\Components\TextInput::make('file_type')
-                    ->placeholder('ej: pdf, png, zip')
+                    ->placeholder('ej: pdf, png, jpg')
                     ->disabled()
                     ->dehydrated(),
 

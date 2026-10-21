@@ -10,6 +10,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProjectIdeaResource extends Resource
 {
@@ -17,6 +18,18 @@ class ProjectIdeaResource extends Resource
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $recordTitleAttribute = 'title';
+
+    // El beneficiario solo gestiona sus propias ideas
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->hasRole('beneficiario')) {
+            $query->where('organizer_id', auth()->id());
+        }
+
+        return $query;
+    }
 
     public static function form(Schema $schema): Schema
     {
