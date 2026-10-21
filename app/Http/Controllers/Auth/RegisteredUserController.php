@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class RegisteredUserController extends Controller
 {
@@ -34,17 +35,23 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-             'role' => ['required', 'string', 'in:beneficiario,profesor,estudent'],
-             'institution_name' => ['nullable', 'string', 'max:255']
-            ]);
+            'role' => ['required', 'string', 'in:beneficiario,profesor,student'],
+            'institution_name' => ['nullable', 'string', 'max:255'],
+        ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'institution_name' => $request->beneficiario ? $request->institution_name : null
+            'institution_name' => $request->role === 'beneficiario' ? $request->institution_name : null
         ]);
+
+        // Asigna el rol de Spatie para que los permisos funcionen
+        $user->assignRole(Role::firstOrCreate([
+            'name' => $request->role,
+            'guard_name' => 'web',
+        ]));
 
         event(new Registered($user));
 

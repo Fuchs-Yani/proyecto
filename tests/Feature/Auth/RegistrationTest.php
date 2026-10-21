@@ -12,8 +12,13 @@ test('new users can register', function () {
         'email' => 'test@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
+        'role' => 'student',
     ]);
 
     $this->assertAuthenticated();
     $response->assertRedirect(route('dashboard', absolute: false));
+
+    $user = App\Models\User::where('email', 'test@example.com')->first();
+    expect($user->role)->toBe('student')
+        ->and($user->hasRole('student'))->toBeTrue();
 });
