@@ -1,7 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-bold text-slate-900">Ideas disponibles</h2>
-        <p class="text-sm text-slate-500">Rol: {{ auth()->user()->getRoleNames()->join(', ') }}</p>
+        <h2 class="text-xl font-bold text-slate-900">{{ auth()->check() ? 'Ideas disponibles' : 'Proyectos terminados' }}</h2>
+        <p class="text-sm text-slate-500">
+            @auth Rol: {{ auth()->user()->getRoleNames()->join(', ') }}
+            @else Explora proyectos desarrollados por estudiantes
+            @endauth
+        </p>
     </x-slot>
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
         @if (session('status'))<div class="bg-white border border-slate-200 rounded-lg p-3 text-sm">{{ session('status') }}</div>@endif
@@ -9,7 +13,7 @@
             <div class="bg-white border border-slate-200 rounded-lg p-4 flex justify-between items-center">
                 <div>
                     <a href="{{ route('ideas.show', $idea) }}" class="font-bold text-slate-900">{{ $idea->title }}</a>
-                    <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ $idea->status }} · 📎 {{ $idea->attachments->count() }}</p>
+                    <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$idea->status] ?? $idea->status }} · 📎 {{ $idea->attachments->count() }}</p>
                 </div>
                 <div class="flex gap-2 items-center">
                     <a href="{{ route('ideas.show', $idea) }}" class="px-3 py-1.5 border border-slate-300 rounded-md text-sm">Ver</a>

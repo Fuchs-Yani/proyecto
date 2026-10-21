@@ -98,9 +98,9 @@
                     <div class="w-40 md:w-64 bg-slate-200 flex items-center justify-center text-slate-400 text-xs">Terminado ✓</div>
                 </div>
             @empty
-                <p class="text-sm text-slate-500 bg-white border rounded p-4 text-center">Aún no hay proyectos terminados. <a href="{{ route('ideas.index') }}" class="underline text-slate-900">Ver ideas disponibles</a></p>
+                <p class="text-sm text-slate-500 bg-white border rounded p-4 text-center">Aún no hay proyectos terminados. <a href="{{ route('ideas.index') }}" class="underline text-slate-900">Ver proyectos</a></p>
             @endforelse
-            <div class="text-center"><a href="{{ route('ideas.index') }}" class="text-sm underline text-slate-700">Ver todas las ideas disponibles →</a></div>
+            <div class="text-center"><a href="{{ route('ideas.index') }}" class="text-sm underline text-slate-700">Ver todos los proyectos terminados →</a></div>
         </div>
     </section>
 

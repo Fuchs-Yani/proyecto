@@ -14,14 +14,15 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Catálogo público: invitados solo ven proyectos terminados
+Route::get('/ideas', [ProjectIdeaController::class, 'index'])->name('ideas.index');
+Route::get('/ideas/{projectIdea}', [ProjectIdeaController::class, 'show'])->name('ideas.show');
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // TODOS los roles: ver ideas
-    Route::get('/ideas', [ProjectIdeaController::class, 'index'])->name('ideas.index');
-    Route::get('/ideas/{projectIdea}', [ProjectIdeaController::class, 'show'])->name('ideas.show');
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     // STUDENT (+admin): postularse / retirar
@@ -30,7 +31,6 @@ Route::middleware('auth')->group(function () {
     // ORGANIZATION (+admin): subir / borrar adjuntos propios
     Route::post('/ideas/{projectIdea}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
-    Route::get('/proyectos', [ProjectIdeaController::class, 'index'])->name('ideas.index');
-    });
+});
 
 require __DIR__.'/auth.php';
