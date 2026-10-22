@@ -111,6 +111,16 @@ class DatabaseSeeder extends Seeder
         );
         $org->assignRole($beneficiarioRole);
 
+          // 4. Usuario Profesor
+        $profesor = User::firstOrCreate(
+            ['email' => 'profesor@test.com'],
+            [
+                'name' => 'Profesor de Prueba',
+                'password' => Hash::make('password123'),
+            ]
+        );
+        $profesor->assignRole($profesorRole);
+
         // 6. Datos demo (solo si no hay ideas)
         if (ProjectIdea::count() === 0) {
             $ideas = ProjectIdea::factory(5)->create(['organizer_id' => $org->id]);
