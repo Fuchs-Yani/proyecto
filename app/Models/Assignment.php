@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Assignment extends Model
 {
     use HasFactory;
+
     protected $table = 'assignments';
 
     protected $fillable = [
@@ -19,6 +20,15 @@ class Assignment extends Model
         'started_at',
         'finished_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'applied_at' => 'datetime',
+            'started_at' => 'datetime',
+            'finished_at' => 'datetime',
+        ];
+    }
 
     public function projectIdea(): BelongsTo
     {

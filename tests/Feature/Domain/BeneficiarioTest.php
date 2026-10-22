@@ -3,6 +3,8 @@
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -29,7 +31,12 @@ test('un beneficiario puede crear una idea', function () {
 
     $this->actingAs($beneficiario)->get('/ideas/crear')
         ->assertOk()
-        ->assertSee('Nueva idea');
+        ->assertSee('Nueva idea')
+        ->assertSee('Documentos e imágenes de apoyo')
+        ->assertSee('Seleccionar archivos')
+        ->assertSee('Ningún archivo seleccionado')
+        ->assertSee('Contanos con tus palabras')
+        ->assertDontSee('requisito');
 
     $this->actingAs($beneficiario)->post('/ideas', [
         'title' => 'Idea del beneficiario',
@@ -41,6 +48,55 @@ test('un beneficiario puede crear una idea', function () {
     expect($idea)->not->toBeNull()
         ->and($idea->organizer_id)->toBe($beneficiario->id)
         ->and($idea->status)->toBe('available');
+});
+
+test('un beneficiario puede publicar una idea con documentos e imágenes', function () {
+    Storage::fake('public');
+
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $pdf = UploadedFile::fake()->create('detalle.pdf', 250, 'application/pdf');
+    $image = UploadedFile::fake()->create('inspiracion.png', 250, 'image/png');
+
+    $this->actingAs($beneficiario)->post('/ideas', [
+        'title' => 'Idea con archivos de apoyo',
+        'description' => 'Una descripción sencilla.',
+        'attachments' => [$pdf, $image],
+    ])->assertRedirect();
+
+    $idea = ProjectIdea::where('title', 'Idea con archivos de apoyo')->firstOrFail();
+
+    $fileNames = $idea->attachments->pluck('file_name')->all();
+
+    expect($idea->attachments)->toHaveCount(2)
+        ->and($fileNames)->toContain('detalle.pdf')
+        ->and($fileNames)->toContain('inspiracion.png');
+
+    foreach ($idea->attachments as $attachment) {
+        Storage::disk('public')->assertExists($attachment->file_path);
+    }
+});
+
+test('una idea no acepta documentos que no sean pdf o imágenes', function () {
+    Storage::fake('public');
+
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $docx = UploadedFile::fake()->create(
+        'detalle.docx',
+        100,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
+
+    $this->actingAs($beneficiario)->post('/ideas', [
+        'title' => 'Idea con archivo no permitido',
+        'description' => 'Una descripción sencilla.',
+        'attachments' => [$docx],
+    ])->assertSessionHasErrors('attachments.0');
+
+    expect(ProjectIdea::where('title', 'Idea con archivo no permitido')->exists())->toBeFalse();
 });
 
 test('un estudiante no puede crear ideas', function () {
@@ -74,11 +130,16 @@ test('el beneficiario ve quienes se postulan solo a sus propias ideas', function
         ->assertDontSee('Alumno Postulante');
 });
 
-test('el dashboard del beneficiario muestra el modulo nueva idea', function () {
+test('el dashboard del beneficiario solo muestra el boton nueva idea', function () {
     $beneficiario = User::factory()->create();
     $beneficiario->assignRole('beneficiario');
 
     $this->actingAs($beneficiario)->get('/dashboard')
         ->assertOk()
-        ->assertSee('Nueva idea');
+        ->assertSee('Dashboard')
+        ->assertSee('Nueva idea')
+        ->assertDontSee('Banco de Ideas y Proyectos de Software')
+        ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
+        ->assertDontSee('Actualiza tus datos y tu contraseña.')
+        ->assertDontSee('Todas las postulaciones');
 });

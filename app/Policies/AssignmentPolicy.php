@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Assignment;
+use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
 class AssignmentPolicy
 {
-    use \Illuminate\Auth\Access\HandlesAuthorization;
+    use HandlesAuthorization;
 
     public function viewAny(AuthUser $authUser): bool
     {
@@ -21,17 +22,23 @@ class AssignmentPolicy
         if (! $authUser->can('View:Assignment')) {
             return false;
         }
-        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('admin')) {
+        if (! method_exists($authUser, 'hasRole')) {
+            return false;
+        }
+
+        if ($authUser->hasAnyRole(['admin', 'profesor'])) {
             return true;
         }
-        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('student')) {
+
+        if ($authUser->hasRole('student')) {
             return $assignment->student_id === $authUser->id;
         }
-        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('beneficiario')) {
+
+        if ($authUser->hasRole('beneficiario')) {
             return $assignment->projectIdea?->organizer_id === $authUser->id;
         }
 
-        return true;
+        return false;
     }
 
     public function create(AuthUser $authUser): bool

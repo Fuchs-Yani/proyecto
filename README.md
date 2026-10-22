@@ -1,58 +1,126 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Banco de Ideas y Proyectos de Software
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web para conectar estudiantes, docentes y beneficiarios alrededor de ideas y proyectos de software reales.
 
-## About Laravel
+## Requisitos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 o superior
+- Composer
+- MySQL
+- Node.js y npm
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Instalación
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan storage:link
+php artisan db:seed
+npm install
+npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+`php artisan db:seed` crea **solo roles y permisos**. No carga usuarios, ideas, postulaciones ni adjuntos de ejemplo.
 
-## Contributing
+## Primer administrador
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Después de migrar y sembrar la base, crear el primer usuario administrador real:
 
-## Code of Conduct
+```bash
+php artisan app:create-admin
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+El comando pide nombre, correo y contraseña. También acepta opciones:
 
-## Security Vulnerabilities
+```bash
+php artisan app:create-admin --name="Nombre" --email="admin@ejemplo.com" --password="una-clave-segura"
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Luego se puede ingresar desde `/login` o directamente desde `/admin/login`.
 
-## License
+## Cuentas de prueba (solo desarrollo)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+No se crean automáticamente. Para recrearlas:
+
+```bash
+php artisan db:seed --class=TestAccountsSeeder
+```
+
+| Rol | Correo | Contraseña |
+| --- | --- | --- |
+| Admin | `admin@admin.com` | `password123` |
+| Estudiante | `estudiante@test.com` | `password123` |
+| Beneficiario | `beneficiario@test.com` | `password123` |
+| Profesor | `profesor@test.com` | `password123` |
+
+> Estas cuentas son solo para pruebas. Antes de publicar el proyecto, eliminarlas y crear las cuentas reales.
+
+## Proyectos de ejemplo (solo desarrollo)
+
+Para crear 4 beneficiarios con una idea cada uno, más un PDF de requerimientos y dos imágenes de inspiración por idea:
+
+```bash
+php artisan db:seed --class=BeneficiaryProjectsSeeder
+```
+
+| Beneficiario | Correo | Idea |
+| --- | --- | --- |
+| Refugio Huellitas de Esperanza | `refugio@test.com` | Sistema de adopciones |
+| Escuela Primaria N° 12 | `escuela@test.com` | Gestión de biblioteca escolar |
+| María González | `maria@test.com` | Gestión de despensa |
+| Lucía Fernández | `lucia@test.com` | Gestión de medicación |
+
+Todas usan la contraseña `password123`. El seeder es idempotente: se puede volver a ejecutar sin duplicar las ideas ni los adjuntos.
+
+## Estudiantes de prueba (solo desarrollo)
+
+Para crear 7 estudiantes adicionales:
+
+```bash
+php artisan db:seed --class=StudentAccountsSeeder
+```
+
+| Nombre | Correo |
+| --- | --- |
+| Juan Pérez | `juan.perez@test.com` |
+| Sofía Ramírez | `sofia.ramirez@test.com` |
+| Mateo Álvarez | `mateo.alvarez@test.com` |
+| Valentina Torres | `valentina.torres@test.com` |
+| Nicolás Herrera | `nicolas.herrera@test.com` |
+| Camila Rojas | `camila.rojas@test.com` |
+| Lucas Medina | `lucas.medina@test.com` |
+
+Todos usan la contraseña `password123`.
+
+## Profesor adicional (solo desarrollo)
+
+Para crear un profesor adicional:
+
+```bash
+php artisan db:seed --class=ProfessorAccountSeeder
+```
+
+| Nombre | Correo | Contraseña |
+| --- | --- | --- |
+| Ricardo Salas | `ricardo.salas@test.com` | `password123` |
+
+## Roles
+
+- `student`: explora ideas disponibles, se postula y retira postulaciones.
+- `beneficiario`: publica ideas, administra sus adjuntos y ve las postulaciones recibidas.
+- `profesor`: consulta ideas y postulaciones para seguimiento.
+- `admin`: acceso completo al panel de Filament.
+
+Los roles se guardan únicamente con Spatie Permission. Las columnas antiguas `users.role` e `users.is_admin` fueron eliminadas para evitar datos duplicados.
+
+## Pruebas
+
+```bash
+php artisan test
+```
+
+## Panel de administración
+
+El panel Filament está disponible en `/admin`.

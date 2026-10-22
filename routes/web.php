@@ -1,17 +1,30 @@
 <?php
 
+use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectIdeaController;
+use App\Models\ProjectIdea;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{ProjectIdeaController,AssignmentController,AttachmentController};
 
 Route::get('/', function () {
-    $finished = App\Models\ProjectIdea::where('status', 'completed')->with('organizer')->latest()->take(3)->get();
+    $finished = ProjectIdea::where('status', 'completed')->with('organizer')->latest()->take(3)->get();
 
     return view('welcome', compact('finished'));
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $ideas = null;
+
+    if (auth()->user()->hasRole('student')) {
+        $ideas = ProjectIdea::query()
+            ->with(['organizer', 'attachments'])
+            ->where('status', 'available')
+            ->latest()
+            ->paginate(12);
+    }
+
+    return view('dashboard', compact('ideas'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Crear idea: solo usuarios autenticados con permiso (beneficiario/admin)

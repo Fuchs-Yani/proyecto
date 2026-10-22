@@ -4,11 +4,12 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AttachmentResource\Pages;
 use App\Models\Attachment;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Table;
 
 class AttachmentResource extends Resource
@@ -43,7 +44,6 @@ class AttachmentResource extends Resource
                     ->maxSize(10240)
                     ->helperText('PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB')
                     ->downloadable()
-                    ->openUrlInNewTab()
                     ->required(),
 
                 Forms\Components\TextInput::make('file_type')
@@ -82,7 +82,7 @@ class AttachmentResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
-                Tables\Actions\Action::make('download')
+                Action::make('download')
                     ->label('Descargar')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->url(fn (Attachment $record) => \Illuminate\Support\Facades\Storage::disk('public')->url($record->file_path))

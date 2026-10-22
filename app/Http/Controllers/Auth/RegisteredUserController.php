@@ -43,11 +43,10 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'institution_name' => $request->role === 'beneficiario' ? $request->institution_name : null
+            'institution_name' => $request->role === 'beneficiario' ? $request->institution_name : null,
         ]);
 
-        // Asigna el rol de Spatie para que los permisos funcionen
+        // El rol se guarda únicamente en Spatie; users.role fue eliminado.
         $user->assignRole(Role::firstOrCreate([
             'name' => $request->role,
             'guard_name' => 'web',

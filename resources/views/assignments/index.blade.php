@@ -7,7 +7,7 @@
         @forelse($assignments as $a)
             <div class="bg-white border border-slate-200 rounded-lg p-3 flex justify-between text-sm">
                 <span><a href="{{ route('ideas.show', $a->projectIdea) }}" class="font-bold text-slate-900">{{ $a->projectIdea->title ?? '-' }}</a>
-                @role('beneficiario|admin') · {{ $a->student->name ?? '' }} @endrole · {{ $a->status }}</span>
+                @role('beneficiario|admin|profesor') · {{ $a->student->name ?? '' }} @endrole · {{ $a->status }}</span>
                 @can('delete', $a)<form method="POST" action="{{ route('assignments.destroy', $a) }}">@csrf @method('DELETE')<button class="text-red-700">Eliminar</button></form>@endcan
             </div>
         @empty<div class="bg-white border rounded-lg p-6 text-center text-sm text-slate-500">No hay postulaciones.</div>@endforelse

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProjectIdea;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProjectIdeaController extends Controller
 {
@@ -23,19 +24,43 @@ class ProjectIdeaController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => ['file', 'mimes:pdf,jpg,jpeg,png,webp,gif', 'max:10240'],
+        ], [
+            'attachments.array' => 'Los archivos no se enviaron correctamente.',
+            'attachments.*.file' => 'Uno de los archivos no es válido.',
+            'attachments.*.mimes' => 'Solo se permiten archivos PDF o imágenes (JPG, PNG, WEBP o GIF).',
+            'attachments.*.max' => 'Cada archivo no puede superar los 10 MB.',
+            'attachments.*.uploaded' => 'No se pudo subir uno de los archivos. Verificá el tamaño permitido.',
         ]);
 
-        $idea = ProjectIdea::create([
-            'organizer_id' => auth()->id(),
-            'title' => $data['title'],
-            'description' => $data['description'],
-            'status' => 'available',
-        ]);
+        $idea = DB::transaction(function () use ($data, $request) {
+            $idea = ProjectIdea::create([
+                'organizer_id' => auth()->id(),
+                'title' => $data['title'],
+                'description' => $data['description'],
+                'status' => 'available',
+            ]);
+
+            foreach ((array) $request->file('attachments', []) as $file) {
+                $path = $file->store('attachments', 'public');
+
+                $idea->attachments()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => strtolower($file->getClientOriginalExtension()),
+                    'uploaded_at' => now(),
+                ]);
+            }
+
+            return $idea;
+        });
 
         return redirect()
             ->route('ideas.show', $idea)
             ->with('status', 'Idea publicada correctamente.');
     }
+
     // GET /ideas - invitados ven terminados; usuarios con permiso ven disponibles
     public function index()
     {

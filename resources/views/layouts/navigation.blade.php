@@ -19,15 +19,15 @@
             </div>
             <div class="hidden sm:flex items-center gap-3">
                 @auth
-                    <span class="text-xs bg-slate-100 border border-slate-200 rounded px-2 py-1">{{ auth()->user()->getRoleNames()->join(', ') }}</span>
+                    <span class="text-xs bg-slate-100 border border-slate-200 rounded px-2 py-1">{{ auth()->user()->roleLabel() }}</span>
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button class="text-sm text-slate-600">{{ Auth::user()->name }}</button>
+                            <button class="rounded-md px-2 py-1 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ Auth::user()->name }}</button>
                         </x-slot>
                         <x-slot name="content">
-                            <x-dropdown-link :href="route('profile.edit')">Profile</x-dropdown-link>
+                            <x-dropdown-link :href="route('profile.edit')">Editar perfil</x-dropdown-link>
                             <form method="POST" action="{{ route('logout') }}">@csrf
-                                <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">Log Out</x-dropdown-link>
+                                <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">Cerrar sesión</x-dropdown-link>
                             </form>
                         </x-slot>
                     </x-dropdown>

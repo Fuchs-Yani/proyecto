@@ -144,7 +144,7 @@ class AssignmentResource extends Resource
 
                 Tables\Columns\TextColumn::make('applied_at')
                     ->label('Fecha de Postulación')
-                    ->dateTime('d/m/Y H:i')
+                    ->date('d/m/Y')
                     ->sortable(),
             ])
             ->filters([

@@ -13,12 +13,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'role', 'institution_name'])]
+#[Fillable(['name', 'email', 'password', 'institution_name'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser // 2. Implementar FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
     use HasRoles;
 
     /**
@@ -32,6 +33,22 @@ class User extends Authenticatable implements FilamentUser // 2. Implementar Fil
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Devuelve los roles del usuario con etiquetas en español.
+     */
+    public function roleLabel(): string
+    {
+        return $this->getRoleNames()
+            ->map(fn (string $role): string => match ($role) {
+                'student' => 'Estudiante',
+                'beneficiario' => 'Beneficiario',
+                'profesor' => 'Profesor',
+                'admin' => 'Administrador',
+                default => ucfirst($role),
+            })
+            ->join(', ');
     }
 
     /**

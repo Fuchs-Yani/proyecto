@@ -2,47 +2,47 @@
 
 namespace Database\Seeders;
 
-use App\Models\Attachment;
-use App\Models\ProjectIdea;
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
-use Spatie\Permission\Models\Permission;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Crea únicamente roles y permisos.
+     *
+     * No crea usuarios, ideas, postulaciones ni adjuntos de ejemplo.
+     * Los datos reales se cargan desde la aplicación o con el comando
+     * `php artisan app:create-admin` para el primer administrador.
      */
     public function run(): void
     {
-        // 1. Limpiar la caché interna de roles/permisos de Spatie
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // 2. Crear los roles principales
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
         $beneficiarioRole = Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web']);
         $profesorRole = Role::firstOrCreate(['name' => 'profesor', 'guard_name' => 'web']);
 
-        // Asegura que existan los permisos usados (Shield v4: "Accion:Modelo")
+        // Permisos base usados por las policies de la aplicación.
         $needed = [
             'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea', 'Delete:ProjectIdea',
             'ViewAny:Assignment', 'View:Assignment', 'Create:Assignment', 'Update:Assignment', 'Delete:Assignment',
-            'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Delete:Attachment',
+            'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Update:Attachment', 'Delete:Attachment',
         ];
-        foreach ($needed as $p) {
-            Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
+
+        foreach ($needed as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
 
+        // El admin recibe todos los permisos existentes, incluidos los de Shield.
         $adminRole->syncPermissions(Permission::all());
 
-        // STUDENT: ve ideas, se postula/retira, descarga adjuntos
+        // STUDENT: ve ideas, se postula/retira y descarga adjuntos.
         $studentRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
@@ -54,7 +54,7 @@ class DatabaseSeeder extends Seeder
             'View:Attachment',
         ]);
 
-        // BENEFICIARIO: gestiona SUS ideas/adjuntos, ve/actualiza postulaciones recibidas
+        // BENEFICIARIO: gestiona sus ideas/adjuntos y las postulaciones recibidas.
         $beneficiarioRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
             'Update:Assignment',
         ]);
 
-        // PROFESOR: ve ideas/adjuntos, guía y actualiza postulaciones
+        // PROFESOR: ve ideas/adjuntos y puede actualizar postulaciones.
         $profesorRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
@@ -80,59 +80,9 @@ class DatabaseSeeder extends Seeder
             'ViewAny:Attachment',
             'View:Attachment',
         ]);
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
-        // 3. Usuario Administrador (Acceso total a Filament)
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@admin.com'],
-            [
-                'name' => 'Administrador General',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $admin->assignRole($adminRole);
 
-        // 4. Usuario Estudiante
-        $student = User::firstOrCreate(
-            ['email' => 'estudiante@test.com'],
-            [
-                'name' => 'Estudiante de Prueba',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $student->assignRole($studentRole);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // 5. Usuario Beneficiario
-        $org = User::firstOrCreate(
-            ['email' => 'beneficiario@test.com'],
-            [
-                'name' => 'Beneficiario de Prueba',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $org->assignRole($beneficiarioRole);
-
-          // 4. Usuario Profesor
-        $profesor = User::firstOrCreate(
-            ['email' => 'profesor@test.com'],
-            [
-                'name' => 'Profesor de Prueba',
-                'password' => Hash::make('password123'),
-            ]
-        );
-        $profesor->assignRole($profesorRole);
-
-        // 6. Datos demo (solo si no hay ideas)
-        if (ProjectIdea::count() === 0) {
-            $ideas = ProjectIdea::factory(5)->create(['organizer_id' => $org->id]);
-            foreach ($ideas as $idea) {
-                Attachment::factory(2)->create(['project_idea_id' => $idea->id]);
-            }
-            // Postulación demo del estudiante a la primera idea
-            \App\Models\Assignment::firstOrCreate(
-                ['project_idea_id' => $ideas->first()->id, 'student_id' => $student->id],
-                ['status' => 'applied', 'applied_at' => now()]
-            );
-        }
+        $this->command?->info('Roles y permisos listos. No se cargaron datos demo.');
     }
-    
 }

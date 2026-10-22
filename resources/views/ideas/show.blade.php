@@ -25,7 +25,7 @@
             @endif
         @endrole
 
-        @if (auth()->check() && (auth()->user()->hasRole('admin') || $projectIdea->organizer_id === auth()->id()))
+        @if (auth()->check() && (auth()->user()->hasAnyRole(['admin', 'profesor']) || $projectIdea->organizer_id === auth()->id()))
             <div class="bg-white border border-slate-200 rounded-lg p-4">
                 <h3 class="font-bold text-slate-900 text-sm">Postulaciones ({{ $projectIdea->assignments->count() }})</h3>
                 @forelse($projectIdea->assignments as $a)
@@ -34,7 +34,7 @@
                             {{ $a->student->name ?? '' }}
                             @if ($a->student?->email) · {{ $a->student->email }} @endif
                             · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado'][$a->status] ?? $a->status }}
-                            · {{ $a->applied_at }}
+                            · {{ $a->applied_at?->format('d/m/Y') }}
                         </span>
                     </div>
                 @empty
