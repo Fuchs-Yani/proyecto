@@ -33,11 +33,18 @@ class DatabaseSeeder extends Seeder
             'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea', 'Delete:ProjectIdea',
             'ViewAny:Assignment', 'View:Assignment', 'Create:Assignment', 'Update:Assignment', 'Delete:Assignment',
             'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Update:Attachment', 'Delete:Attachment',
+            // Permisos de gestión de roles (Filament Shield).
+            'ViewAny:Role', 'View:Role', 'Create:Role', 'Update:Role', 'Delete:Role',
+            'DeleteAny:Role', 'Restore:Role', 'ForceDelete:Role', 'ForceDeleteAny:Role',
+            'RestoreAny:Role', 'Replicate:Role', 'Reorder:Role',
         ];
 
         foreach ($needed as $permission) {
             Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         }
+
+        // Solo debe existir el rol admin; elimina el super_admin legado de Shield.
+        Role::where('name', 'super_admin')->delete();
 
         // El admin recibe todos los permisos existentes, incluidos los de Shield.
         $adminRole->syncPermissions(Permission::all());
