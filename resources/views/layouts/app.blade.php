@@ -22,5 +22,15 @@
             <main class="flex-1">{{ $slot }}</main>
             <footer class="bg-slate-900 text-slate-200 text-center text-sm py-3 mt-6">Instituto Sedes Sapientiae 2026</footer>
         </div>
+        <script>
+            // Evita que un aviso viejo reaparezca al volver atrás (restauración desde caché del navegador).
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) {
+                    document.querySelectorAll('[data-flash-toast]').forEach(function (toast) {
+                        toast.remove();
+                    });
+                }
+            });
+        </script>
     </body>
 </html>

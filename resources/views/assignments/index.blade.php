@@ -3,7 +3,7 @@
         @role('student') Mis postulaciones @elserole('beneficiario') Postulaciones recibidas @else Todas las postulaciones @endrole
     </h2></x-slot>
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
-        @if(session('status'))<div class="bg-white border rounded-lg p-3 text-sm">{{ session('status') }}</div>@endif
+        <x-flash-toast />
         @forelse($assignments as $a)
             <div class="bg-white border border-slate-200 rounded-lg p-3 flex justify-between text-sm">
                 <span><a href="{{ route('ideas.show', $a->projectIdea) }}" class="font-bold text-slate-900">{{ $a->projectIdea->title ?? '-' }}</a>

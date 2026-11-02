@@ -4,13 +4,24 @@
         <p class="text-sm text-slate-500">Estado: {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$projectIdea->status] ?? $projectIdea->status }} · Beneficiario: {{ $projectIdea->organizer->name ?? '' }}</p>
     </x-slot>
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
-        @if (session('status'))<div class="bg-white border rounded-lg p-3 text-sm">{{ session('status') }}</div>@endif
+        <x-flash-toast />
         @if ($errors->any())<div class="bg-white border border-red-300 rounded-lg p-3 text-sm text-red-700">{{ $errors->first() }}</div>@endif
 
         <div class="bg-white border border-slate-200 rounded-lg p-4"><p class="text-sm">{{ $projectIdea->description }}</p></div>
 
+        @can('delete', $projectIdea)
+            <form method="POST" action="{{ route('ideas.destroy', $projectIdea) }}"
+                onsubmit="return confirm('¿Eliminar esta idea? También se borrarán sus archivos y postulaciones.');">
+                @csrf
+                @method('DELETE')
+                <button class="px-4 py-2 border border-red-300 text-red-700 rounded-md text-sm">Eliminar idea</button>
+            </form>
+        @endcan
+
         @role('student')
-            @if (! $alreadyApplied)
+            @if (! $projectIdea->isOpenForApplications())
+                <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya no acepta postulaciones.</p>
+            @elseif (! $alreadyApplied)
                 @can('create', App\Models\Assignment::class)
                     <form method="POST" action="{{ route('assignments.store', $projectIdea) }}">@csrf<button class="px-5 py-2.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
                 @endcan

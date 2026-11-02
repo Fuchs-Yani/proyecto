@@ -32,6 +32,11 @@ class AssignmentController extends Controller
     {
         $this->authorize('create', Assignment::class);
 
+        // Una idea cancelada (o ya cerrada) no acepta nuevas postulaciones.
+        if (! $projectIdea->isOpenForApplications()) {
+            return back()->with('status', 'Esta idea ya no acepta postulaciones.');
+        }
+
         // Evita duplicados
         $exists = Assignment::where('project_idea_id', $projectIdea->id)
             ->where('student_id', auth()->id())

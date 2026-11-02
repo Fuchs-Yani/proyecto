@@ -42,6 +42,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::delete('/ideas/{projectIdea}', [ProjectIdeaController::class, 'destroy'])->name('ideas.destroy');
+
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     // STUDENT (+admin): postularse / retirar

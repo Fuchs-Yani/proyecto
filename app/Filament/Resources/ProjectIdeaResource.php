@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProjectIdeaResource\Pages;
 use App\Models\ProjectIdea;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
@@ -17,6 +18,7 @@ class ProjectIdeaResource extends Resource
     protected static ?string $model = ProjectIdea::class;
 
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static ?string $recordTitleAttribute = 'title';
 
     // El beneficiario solo gestiona sus propias ideas
@@ -70,6 +72,7 @@ class ProjectIdeaResource extends Resource
             ])
             ->actions([
                 EditAction::make(),
+                DeleteAction::make(),
             ]);
     }
 

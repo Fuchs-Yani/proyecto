@@ -61,6 +61,18 @@ class ProjectIdeaController extends Controller
             ->with('status', 'Idea publicada correctamente.');
     }
 
+    // DELETE /ideas/{projectIdea} - el beneficiario dueño (o admin) elimina la idea
+    public function destroy(ProjectIdea $projectIdea)
+    {
+        $this->authorize('delete', $projectIdea);
+
+        DB::transaction(fn () => $projectIdea->delete());
+
+        return redirect()
+            ->route('ideas.index')
+            ->with('status', 'Idea eliminada correctamente.');
+    }
+
     // GET /ideas - invitados ven terminados; usuarios con permiso ven disponibles
     public function index()
     {

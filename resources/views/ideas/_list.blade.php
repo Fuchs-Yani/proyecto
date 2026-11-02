@@ -1,6 +1,4 @@
-@if (session('status'))
-    <div class="bg-white border border-slate-200 rounded-lg p-3 text-sm">{{ session('status') }}</div>
-@endif
+<x-flash-toast />
 
 @forelse($ideas as $idea)
     <div class="bg-white border border-slate-200 rounded-lg p-4 flex justify-between items-center">
@@ -11,9 +9,11 @@
         <div class="flex gap-2 items-center">
             <a href="{{ route('ideas.show', $idea) }}" class="px-3 py-1.5 border border-slate-300 rounded-md text-sm">Ver</a>
             @role('student')
-                @can('create', App\Models\Assignment::class)
-                    <form method="POST" action="{{ route('assignments.store', $idea) }}">@csrf<button class="px-3 py-1.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
-                @endcan
+                @if ($idea->isOpenForApplications())
+                    @can('create', App\Models\Assignment::class)
+                        <form method="POST" action="{{ route('assignments.store', $idea) }}">@csrf<button class="px-3 py-1.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
+                    @endcan
+                @endif
             @endrole
             @role('beneficiario')
                 @if($idea->organizer_id === auth()->id())<span class="px-2 py-1 bg-slate-100 border text-xs rounded">Mi idea</span>@endif
