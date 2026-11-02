@@ -80,6 +80,7 @@ class ProjectIdeaController extends Controller
 
         $ideas = ProjectIdea::query()
             ->with(['organizer', 'attachments'])
+            ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
             ->when(
                 $user?->can('ViewAny:ProjectIdea'),
                 fn ($query) => $query->where('status', 'available'),
@@ -101,6 +102,10 @@ class ProjectIdeaController extends Controller
         }
 
         $projectIdea->load(['organizer', 'attachments', 'assignments.student']);
+        $projectIdea->setAttribute(
+            'active_assignments_count',
+            $projectIdea->assignments->where('status', '!=', 'rejected')->count(),
+        );
 
         $alreadyApplied = auth()->check()
             ? $projectIdea->assignments()->where('student_id', auth()->id())->exists()

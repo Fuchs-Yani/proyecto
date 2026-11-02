@@ -4,12 +4,12 @@
     <div class="bg-white border border-slate-200 rounded-lg p-4 flex justify-between items-center">
         <div>
             <a href="{{ route('ideas.show', $idea) }}" class="font-bold text-slate-900">{{ $idea->title }}</a>
-            <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$idea->status] ?? $idea->status }} · 📎 {{ $idea->attachments->count() }}</p>
+            <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$idea->status] ?? $idea->status }} · 📎 {{ $idea->attachments->count() }}@if ($idea->max_students !== null) · 👥 {{ $idea->activeAssignmentsCount() }}/{{ $idea->max_students }} postulantes @endif</p>
         </div>
         <div class="flex gap-2 items-center">
             <a href="{{ route('ideas.show', $idea) }}" class="px-3 py-1.5 border border-slate-300 rounded-md text-sm">Ver</a>
             @role('student')
-                @if ($idea->isOpenForApplications())
+                @if ($idea->isOpenForApplications() && $idea->hasAvailableSlots())
                     @can('create', App\Models\Assignment::class)
                         <form method="POST" action="{{ route('assignments.store', $idea) }}">@csrf<button class="px-3 py-1.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
                     @endcan

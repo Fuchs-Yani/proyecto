@@ -19,6 +19,7 @@ Route::get('/dashboard', function () {
     if (auth()->user()->hasRole('student')) {
         $ideas = ProjectIdea::query()
             ->with(['organizer', 'attachments'])
+            ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
             ->where('status', 'available')
             ->latest()
             ->paginate(12);

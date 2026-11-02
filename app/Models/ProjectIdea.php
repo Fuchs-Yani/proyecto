@@ -19,7 +19,15 @@ class ProjectIdea extends Model
         'title',
         'description',
         'status',
+        'max_students',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'max_students' => 'integer',
+        ];
+    }
 
     /**
      * Indica si la idea todavía acepta postulaciones.
@@ -27,6 +35,28 @@ class ProjectIdea extends Model
     public function isOpenForApplications(): bool
     {
         return $this->status === 'available';
+    }
+
+    /**
+     * Postulaciones vigentes de la idea (las rechazadas no ocupan cupo).
+     */
+    public function activeAssignmentsCount(): int
+    {
+        if (array_key_exists('active_assignments_count', $this->attributes)) {
+            return (int) $this->attributes['active_assignments_count'];
+        }
+
+        return $this->assignments()->where('status', '!=', 'rejected')->count();
+    }
+
+    /**
+     * Indica si la idea todavía tiene cupo para nuevas postulaciones.
+     * Cuando max_students es null no hay límite.
+     */
+    public function hasAvailableSlots(): bool
+    {
+        return $this->max_students === null
+            || $this->activeAssignmentsCount() < $this->max_students;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use Illuminate\Support\Facades\DB;
 
 class AssignmentController extends Controller
 {
@@ -37,23 +38,37 @@ class AssignmentController extends Controller
             return back()->with('status', 'Esta idea ya no acepta postulaciones.');
         }
 
-        // Evita duplicados
-        $exists = Assignment::where('project_idea_id', $projectIdea->id)
-            ->where('student_id', auth()->id())
-            ->exists();
+        // Bloquea la fila de la idea para controlar el cupo ante postulaciones simultáneas.
+        $result = DB::transaction(function () use ($projectIdea): string {
+            $idea = ProjectIdea::whereKey($projectIdea->getKey())->lockForUpdate()->firstOrFail();
 
-        if ($exists) {
-            return back()->with('status', 'Ya te postulaste a esta idea.');
-        }
+            $exists = Assignment::where('project_idea_id', $idea->id)
+                ->where('student_id', auth()->id())
+                ->exists();
 
-        Assignment::create([
-            'project_idea_id' => $projectIdea->id,
-            'student_id' => auth()->id(),
-            'status' => 'applied',
-            'applied_at' => now(),
-        ]);
+            if ($exists) {
+                return 'duplicate';
+            }
 
-        return back()->with('status', 'Postulación creada.');
+            if (! $idea->hasAvailableSlots()) {
+                return 'full';
+            }
+
+            Assignment::create([
+                'project_idea_id' => $idea->id,
+                'student_id' => auth()->id(),
+                'status' => 'applied',
+                'applied_at' => now(),
+            ]);
+
+            return 'created';
+        });
+
+        return match ($result) {
+            'duplicate' => back()->with('status', 'Ya te postulaste a esta idea.'),
+            'full' => back()->with('status', 'Esta idea ya alcanzó el cupo máximo de postulantes.'),
+            default => back()->with('status', 'Postulación creada.'),
+        };
     }
 
     // DELETE /assignments/{assignment} - retirar postulación

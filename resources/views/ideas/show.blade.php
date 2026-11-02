@@ -2,6 +2,12 @@
     <x-slot name="header">
         <h2 class="text-xl font-bold text-slate-900">{{ $projectIdea->title }}</h2>
         <p class="text-sm text-slate-500">Estado: {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$projectIdea->status] ?? $projectIdea->status }} · Beneficiario: {{ $projectIdea->organizer->name ?? '' }}</p>
+        @if ($projectIdea->max_students !== null)
+            <p class="text-sm text-slate-500">
+                Cupo de postulantes: {{ $projectIdea->activeAssignmentsCount() }} / {{ $projectIdea->max_students }}
+                @if (! $projectIdea->hasAvailableSlots()) · Cupo completo @endif
+            </p>
+        @endif
     </x-slot>
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
         <x-flash-toast />
@@ -21,11 +27,7 @@
         @role('student')
             @if (! $projectIdea->isOpenForApplications())
                 <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya no acepta postulaciones.</p>
-            @elseif (! $alreadyApplied)
-                @can('create', App\Models\Assignment::class)
-                    <form method="POST" action="{{ route('assignments.store', $projectIdea) }}">@csrf<button class="px-5 py-2.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
-                @endcan
-            @else
+            @elseif ($alreadyApplied)
                 <p class="bg-white border rounded-lg p-3 text-sm">Ya postulado.</p>
                 @php($mine = $projectIdea->assignments->firstWhere('student_id', auth()->id()))
                 @if ($mine)
@@ -33,6 +35,12 @@
                         <form method="POST" action="{{ route('assignments.destroy', $mine) }}">@csrf @method('DELETE')<button class="px-3 py-1.5 border border-slate-300 rounded-md text-sm text-red-700">Retirar postulación</button></form>
                     @endcan
                 @endif
+            @elseif (! $projectIdea->hasAvailableSlots())
+                <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya alcanzó el cupo máximo de postulantes.</p>
+            @else
+                @can('create', App\Models\Assignment::class)
+                    <form method="POST" action="{{ route('assignments.store', $projectIdea) }}">@csrf<button class="px-5 py-2.5 bg-slate-900 text-white rounded-md text-sm">Postularme</button></form>
+                @endcan
             @endif
         @endrole
 

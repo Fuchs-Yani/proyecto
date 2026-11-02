@@ -58,6 +58,13 @@ class ProjectIdeaResource extends Resource
                     ])
                     ->default('available')
                     ->required(),
+                Forms\Components\TextInput::make('max_students')
+                    ->label('Máximo de postulantes')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(1)
+                    ->nullable()
+                    ->helperText('Dejar vacío para permitir postulaciones sin límite.'),
             ]);
     }
 
@@ -68,6 +75,11 @@ class ProjectIdeaResource extends Resource
                 Tables\Columns\TextColumn::make('title')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('organizer.name')->label('Organizer')->sortable(),
                 Tables\Columns\TextColumn::make('status')->badge(),
+                Tables\Columns\TextColumn::make('applicants')
+                    ->label('Postulantes / cupo')
+                    ->state(fn (ProjectIdea $record): string => $record->max_students === null
+                        ? $record->activeAssignmentsCount().' / sin límite'
+                        : $record->activeAssignmentsCount().' / '.$record->max_students),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->actions([
