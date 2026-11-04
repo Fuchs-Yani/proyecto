@@ -24,7 +24,7 @@
         </div>
     </div>
 @empty
-    <div class="bg-white border rounded-lg p-6 text-center text-sm text-slate-500">No hay ideas disponibles.</div>
+    <div class="bg-white border rounded-lg p-6 text-center text-sm text-slate-500">{{ $emptyMessage ?? 'No hay ideas disponibles.' }}</div>
 @endforelse
 
 {{ $ideas->links() }}

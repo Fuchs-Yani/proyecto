@@ -16,7 +16,7 @@ test('beneficiary projects seeder creates four beneficiaries, ideas and attachme
         ->and(User::where('email', 'maria@test.com')->first()->institution_name)->toBeNull()
         ->and(User::where('email', 'lucia@test.com')->first()->hasRole('beneficiario'))->toBeTrue()
         ->and(ProjectIdea::count())->toBe(4)
-        ->and(Attachment::count())->toBe(12);
+        ->and(Attachment::count())->toBe(8);
 
     foreach (Attachment::all() as $attachment) {
         Storage::disk('public')->assertExists($attachment->file_path);

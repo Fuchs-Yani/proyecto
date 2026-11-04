@@ -136,7 +136,7 @@ test('el dashboard del beneficiario solo muestra el boton nueva idea', function 
 
     $this->actingAs($beneficiario)->get('/dashboard')
         ->assertOk()
-        ->assertSee('Dashboard')
+        ->assertSee('Panel')
         ->assertSee('Nueva idea')
         ->assertDontSee('Banco de Ideas y Proyectos de Software')
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')

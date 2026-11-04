@@ -6,11 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class ProjectIdea extends Model
 {
     use HasFactory;
+
+    /**
+     * Cantidad máxima de archivos adjuntos permitidos por idea.
+     */
+    public const MAX_ATTACHMENTS = 2;
 
     protected $table = 'project_ideas';
 
@@ -60,15 +64,24 @@ class ProjectIdea extends Model
     }
 
     /**
-     * Al eliminar la idea, borra también los archivos físicos de sus adjuntos.
-     * Las filas de adjuntos y postulaciones se eliminan por la FK en cascada.
+     * Indica si la idea ya alcanzó el máximo de archivos adjuntos permitidos.
+     */
+    public function hasReachedAttachmentLimit(): bool
+    {
+        return $this->attachments()->count() >= self::MAX_ATTACHMENTS;
+    }
+
+    /**
+     * Al eliminar la idea, elimina sus adjuntos mediante Eloquent para que el
+     * modelo Attachment borre cada archivo físico del disco. Las filas que
+     * queden se eliminan por la FK en cascada.
      */
     protected static function booted(): void
     {
         static::deleting(function (ProjectIdea $idea): void {
-            foreach ($idea->attachments()->get() as $attachment) {
-                Storage::disk('public')->delete($attachment->file_path);
-            }
+            $idea->attachments()->get()->each(function (Attachment $attachment): void {
+                $attachment->delete();
+            });
         });
     }
 

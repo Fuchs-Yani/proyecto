@@ -7,7 +7,7 @@ Aplicación web para conectar estudiantes, docentes y beneficiarios alrededor de
 - PHP 8.3 o superior
 - Composer
 - MySQL
-- Node.js y npm
+- Node.js y pnpm
 
 ## Instalación
 
@@ -18,8 +18,8 @@ php artisan key:generate
 php artisan migrate
 php artisan storage:link
 php artisan db:seed
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 `php artisan db:seed` crea **solo roles y permisos**. No carga usuarios, ideas, postulaciones ni adjuntos de ejemplo.
@@ -59,7 +59,7 @@ php artisan db:seed --class=TestAccountsSeeder
 
 ## Proyectos de ejemplo (solo desarrollo)
 
-Para crear 4 beneficiarios con una idea cada uno, más un PDF de requerimientos y dos imágenes de inspiración por idea:
+Para crear 4 beneficiarios con una idea cada uno, más un PDF de requerimientos y una imagen de inspiración por idea:
 
 ```bash
 php artisan db:seed --class=BeneficiaryProjectsSeeder
@@ -109,7 +109,7 @@ php artisan db:seed --class=ProfessorAccountSeeder
 ## Roles
 
 - `student`: explora ideas disponibles, se postula y retira postulaciones.
-- `beneficiario`: publica ideas, administra sus adjuntos y ve las postulaciones recibidas.
+- `beneficiario`: publica ideas, administra sus adjuntos (máximo 2 archivos por idea) y ve las postulaciones recibidas.
 - `profesor`: consulta ideas y postulaciones para seguimiento.
 - `admin`: acceso completo al panel de Filament.
 

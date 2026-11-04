@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ProjectIdea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProjectIdeaController extends Controller
 {
@@ -24,37 +25,48 @@ class ProjectIdeaController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'attachments' => ['nullable', 'array'],
+            'attachments' => ['nullable', 'array', 'max:'.ProjectIdea::MAX_ATTACHMENTS],
             'attachments.*' => ['file', 'mimes:pdf,jpg,jpeg,png,webp,gif', 'max:10240'],
         ], [
             'attachments.array' => 'Los archivos no se enviaron correctamente.',
+            'attachments.max' => 'Solo podés adjuntar hasta '.ProjectIdea::MAX_ATTACHMENTS.' archivos por idea.',
             'attachments.*.file' => 'Uno de los archivos no es válido.',
             'attachments.*.mimes' => 'Solo se permiten archivos PDF o imágenes (JPG, PNG, WEBP o GIF).',
             'attachments.*.max' => 'Cada archivo no puede superar los 10 MB.',
             'attachments.*.uploaded' => 'No se pudo subir uno de los archivos. Verificá el tamaño permitido.',
         ]);
 
-        $idea = DB::transaction(function () use ($data, $request) {
-            $idea = ProjectIdea::create([
-                'organizer_id' => auth()->id(),
-                'title' => $data['title'],
-                'description' => $data['description'],
-                'status' => 'available',
-            ]);
+        $storedPaths = [];
 
-            foreach ((array) $request->file('attachments', []) as $file) {
-                $path = $file->store('attachments', 'public');
-
-                $idea->attachments()->create([
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'file_type' => strtolower($file->getClientOriginalExtension()),
-                    'uploaded_at' => now(),
+        try {
+            $idea = DB::transaction(function () use ($data, $request, &$storedPaths) {
+                $idea = ProjectIdea::create([
+                    'organizer_id' => auth()->id(),
+                    'title' => $data['title'],
+                    'description' => $data['description'],
+                    'status' => 'available',
                 ]);
-            }
 
-            return $idea;
-        });
+                foreach ((array) $request->file('attachments', []) as $file) {
+                    $path = $file->store('attachments', 'public');
+                    $storedPaths[] = $path;
+
+                    $idea->attachments()->create([
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'file_type' => strtolower($file->getClientOriginalExtension()),
+                        'uploaded_at' => now(),
+                    ]);
+                }
+
+                return $idea;
+            });
+        } catch (\Throwable $exception) {
+            // Si la transacción falla, borra los archivos ya guardados en el disco.
+            Storage::disk('public')->delete($storedPaths);
+
+            throw $exception;
+        }
 
         return redirect()
             ->route('ideas.show', $idea)
@@ -71,6 +83,21 @@ class ProjectIdeaController extends Controller
         return redirect()
             ->route('ideas.index')
             ->with('status', 'Idea eliminada correctamente.');
+    }
+
+    // GET /mis-ideas - el beneficiario ve únicamente las ideas que publicó
+    public function mine()
+    {
+        abort_unless(auth()->user()->hasRole('beneficiario'), 403);
+
+        $ideas = ProjectIdea::query()
+            ->with(['organizer', 'attachments'])
+            ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
+            ->where('organizer_id', auth()->id())
+            ->latest()
+            ->paginate(12);
+
+        return view('ideas.mine', compact('ideas'));
     }
 
     // GET /ideas - invitados ven terminados; usuarios con permiso ven disponibles

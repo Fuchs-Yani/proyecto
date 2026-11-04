@@ -15,7 +15,7 @@
             <span class="font-bold text-slate-900">Banco de Ideas</span>
             <nav class="flex gap-3 text-sm">
                 @auth
-                    <a href="{{ url('/dashboard') }}" class="px-4 py-2 bg-slate-900 text-white rounded-md">Dashboard</a>
+                    <a href="{{ url('/dashboard') }}" class="px-4 py-2 bg-slate-900 text-white rounded-md">Panel</a>
                 @else
                     @if (Route::has('login'))
                         <a href="{{ route('login') }}" class="px-4 py-2 border border-slate-300 rounded-md">Ingresar</a>

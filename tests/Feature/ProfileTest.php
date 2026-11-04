@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Spatie\Permission\Models\Role;
 
 test('profile page is displayed', function () {
     $user = User::factory()->create();
@@ -48,6 +49,37 @@ test('email verification status is unchanged when the email address is unchanged
         ->assertRedirect('/profile');
 
     $this->assertNotNull($user->refresh()->email_verified_at);
+});
+
+test('el beneficiario puede corregir el nombre de su institucion desde el perfil', function () {
+    Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web']);
+
+    $user = User::factory()->create(['institution_name' => 'Institución anterior']);
+    $user->assignRole('beneficiario');
+
+    $this->actingAs($user)
+        ->patch('/profile', [
+            'name' => $user->name,
+            'email' => $user->email,
+            'institution_name' => 'Institución corregida',
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/profile');
+
+    expect($user->refresh()->institution_name)->toBe('Institución corregida');
+});
+
+test('el perfil del beneficiario muestra el campo institucion', function () {
+    Role::firstOrCreate(['name' => 'beneficiario', 'guard_name' => 'web']);
+
+    $user = User::factory()->create(['institution_name' => 'Institución original']);
+    $user->assignRole('beneficiario');
+
+    $this->actingAs($user)
+        ->get('/profile')
+        ->assertOk()
+        ->assertSee('Institución u organización')
+        ->assertSee('Institución original');
 });
 
 test('user can delete their account', function () {

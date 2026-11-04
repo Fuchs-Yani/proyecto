@@ -53,10 +53,10 @@ class BeneficiaryProjectsSeeder extends Seeder
             $directory = 'attachments/beneficiarios/'.$data['slug'];
 
             $this->storeDocument($idea, $directory, $data);
-            $this->storeInspirations($idea, $directory, $data);
+            $this->storeInspiration($idea, $directory, $data);
         }
 
-        $this->command?->info('4 beneficiarios, 4 ideas, 4 PDF y 8 imágenes de inspiración creados.');
+        $this->command?->info('4 beneficiarios, 4 ideas, 4 PDF y 4 imágenes de inspiración creados.');
         $this->command?->info('Contraseña de las cuentas: password123');
     }
 
@@ -321,16 +321,14 @@ class BeneficiaryProjectsSeeder extends Seeder
     /**
      * @param  array<string, mixed>  $data
      */
-    private function storeInspirations(ProjectIdea $idea, string $directory, array $data): void
+    private function storeInspiration(ProjectIdea $idea, string $directory, array $data): void
     {
-        foreach ([1, 2] as $variant) {
-            $fileName = 'Inspiración '.$variant.' - '.$data['name'].'.png';
-            $path = $directory.'/inspiracion-'.$variant.'.png';
+        $fileName = 'Inspiración 1 - '.$data['name'].'.png';
+        $path = $directory.'/inspiracion-1.png';
 
-            Storage::disk('public')->put($path, $this->makeInspirationImage($data, $variant));
+        Storage::disk('public')->put($path, $this->makeInspirationImage($data, 1));
 
-            $this->saveAttachment($idea, $fileName, $path, 'png');
-        }
+        $this->saveAttachment($idea, $fileName, $path, 'png');
     }
 
     private function saveAttachment(ProjectIdea $idea, string $fileName, string $path, string $type): void

@@ -22,6 +22,12 @@ class AssignmentResource extends Resource
     // Icono del Menú Lateral (icono de usuario/check o lista de tareas)
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-user-group';
 
+    protected static ?string $navigationLabel = 'Postulaciones';
+
+    protected static ?string $modelLabel = 'postulación';
+
+    protected static ?string $pluralModelLabel = 'postulaciones';
+
     // El beneficiario solo ve las postulaciones recibidas en sus ideas
     public static function getEloquentQuery(): Builder
     {
@@ -51,12 +57,14 @@ class AssignmentResource extends Resource
         return $schema
             ->components([
                 Forms\Components\Select::make('project_idea_id')
+                    ->label('Proyecto')
                     ->relationship('projectIdea', 'title')
                     ->searchable()
                     ->preload()
                     ->required(),
 
                 Forms\Components\Select::make('student_id')
+                    ->label('Estudiante')
                     ->relationship('student', 'name')
                     ->searchable()
                     ->preload()
@@ -66,12 +74,13 @@ class AssignmentResource extends Resource
                     ->required(),
 
                 Forms\Components\Select::make('status')
+                    ->label('Estado')
                     ->options(function (?Assignment $record) use ($transitions): array {
                         $all = [
                             'applied' => 'Postulado',
                             'accepted' => 'Aceptado',
                             'rejected' => 'Rechazado',
-                            'in_progress' => 'En Progreso',
+                            'in_progress' => 'En progreso',
                             'completed' => 'Completado',
                         ];
                         if (! $record?->exists) {
@@ -87,16 +96,22 @@ class AssignmentResource extends Resource
                 Forms\Components\DateTimePicker::make('applied_at')
                     ->label('Postulado el')
                     ->default(now())
+                    ->displayFormat('d/m/Y H:i')
+                    ->seconds(false)
                     ->disabled()
                     ->dehydrated(),
 
                 Forms\Components\DateTimePicker::make('started_at')
                     ->label('Iniciado el')
+                    ->displayFormat('d/m/Y H:i')
+                    ->seconds(false)
                     ->disabled()
                     ->dehydrated(),
 
                 Forms\Components\DateTimePicker::make('finished_at')
                     ->label('Finalizado el')
+                    ->displayFormat('d/m/Y H:i')
+                    ->seconds(false)
                     ->disabled()
                     ->dehydrated(),
             ]);
@@ -128,7 +143,7 @@ class AssignmentResource extends Resource
                     ->formatStateUsing(fn (?string $state): ?string => match ($state) {
                         'applied' => 'Postulado',
                         'accepted' => 'Aceptado',
-                        'in_progress' => 'En Progreso',
+                        'in_progress' => 'En progreso',
                         'completed' => 'Completado',
                         'rejected' => 'Rechazado',
                         default => $state,
@@ -154,7 +169,7 @@ class AssignmentResource extends Resource
                         'applied' => 'Postulado',
                         'accepted' => 'Aceptado',
                         'rejected' => 'Rechazado',
-                        'in_progress' => 'En Progreso',
+                        'in_progress' => 'En progreso',
                         'completed' => 'Completado',
                     ]),
             ])

@@ -63,7 +63,7 @@
         @endif
 
         <div class="bg-white border border-slate-200 rounded-lg p-4">
-            <h3 class="font-bold text-slate-900 text-sm">Adjuntos</h3>
+            <h3 class="font-bold text-slate-900 text-sm">Adjuntos ({{ $projectIdea->attachments->count() }}/{{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }})</h3>
             @forelse($projectIdea->attachments as $a)
                 <div class="flex items-center justify-between gap-3 py-2 text-sm border-b border-slate-100">
                     <div class="flex items-center gap-3 min-w-0">
@@ -86,15 +86,19 @@
                     </span>
                 </div>
             @empty<p class="text-sm text-slate-500">Sin archivos.</p>@endforelse
-            @can('create', App\Models\Attachment::class)
-                @if(auth()->user()->hasRole('admin') || $projectIdea->organizer_id === auth()->id())
-                    <form method="POST" action="{{ route('attachments.store', $projectIdea) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">@csrf
-                        <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="border border-slate-300 rounded p-1 text-sm" required>
-                        <button class="px-4 py-1.5 bg-slate-900 text-white rounded-md text-sm">Subir archivo</button>
-                    </form>
-                    <p class="text-xs text-slate-500 mt-1">PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB</p>
-                @endif
-            @endcan
+            @if ($projectIdea->hasReachedAttachmentLimit())
+                <p class="text-xs text-slate-500 mt-3">Alcanzaste el máximo de {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea. Eliminá uno para poder subir otro.</p>
+            @else
+                @can('create', App\Models\Attachment::class)
+                    @if(auth()->user()->hasRole('admin') || $projectIdea->organizer_id === auth()->id())
+                        <form method="POST" action="{{ route('attachments.store', $projectIdea) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">@csrf
+                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="border border-slate-300 rounded p-1 text-sm" required>
+                            <button class="px-4 py-1.5 bg-slate-900 text-white rounded-md text-sm">Subir archivo</button>
+                        </form>
+                        <p class="text-xs text-slate-500 mt-1">PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB · hasta {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea</p>
+                    @endif
+                @endcan
+            @endif
         </div>
     </div>
 </x-app-layout>

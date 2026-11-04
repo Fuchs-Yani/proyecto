@@ -33,7 +33,7 @@
                     </label>
                     <span id="attachments-file-name" class="text-sm text-slate-600">Ningún archivo seleccionado</span>
                 </div>
-                <p class="text-xs text-slate-500 mt-2">Podés adjuntar PDFs o imágenes (JPG, PNG, WEBP o GIF) que ayuden a entender mejor tu idea. Máximo 10 MB por archivo.</p>
+                <p class="text-xs text-slate-500 mt-2">Podés adjuntar PDFs o imágenes (JPG, PNG, WEBP o GIF) que ayuden a entender mejor tu idea. Máximo {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea (10 MB por archivo).</p>
                 @foreach ($errors->getMessages() as $key => $messages)
                     @if (str_starts_with($key, 'attachments'))
                         @foreach ($messages as $message)
@@ -62,6 +62,13 @@
 
             if (!this.files.length) {
                 output.textContent = 'Ningún archivo seleccionado';
+                return;
+            }
+
+            const limit = {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }};
+
+            if (this.files.length > limit) {
+                output.textContent = `Seleccionaste ${this.files.length} archivos. El máximo es ${limit} por idea.`;
                 return;
             }
 

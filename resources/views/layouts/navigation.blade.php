@@ -5,12 +5,15 @@
                 <a href="/" class="font-bold text-slate-900">Banco de Ideas</a>
                 <div class="hidden sm:flex gap-4 text-sm">
                     @auth
-                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-nav-link>
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Panel</x-nav-link>
                     @endauth
-                    <x-nav-link :href="route('ideas.index')" :active="request()->routeIs('ideas.*')">
+                    <x-nav-link :href="route('ideas.index')" :active="request()->routeIs('ideas.index', 'ideas.show', 'ideas.create')">
                         {{ auth()->check() ? 'Ideas' : 'Proyectos' }}
                     </x-nav-link>
                     @auth
+                        @role('beneficiario')
+                        <x-nav-link :href="route('ideas.mine')" :active="request()->routeIs('ideas.mine')">Mis ideas</x-nav-link>
+                        @endrole
                         @can('viewAny', App\Models\Assignment::class)
                         <x-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-nav-link>
                         @endcan
@@ -43,12 +46,15 @@
     </div>
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden border-t border-slate-200 px-4 py-2 space-y-1 text-sm">
         @auth
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Dashboard</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Panel</x-responsive-nav-link>
         @endauth
-        <x-responsive-nav-link :href="route('ideas.index')" :active="request()->routeIs('ideas.*')">
+        <x-responsive-nav-link :href="route('ideas.index')" :active="request()->routeIs('ideas.index', 'ideas.show', 'ideas.create')">
             {{ auth()->check() ? 'Ideas' : 'Proyectos terminados' }}
         </x-responsive-nav-link>
         @auth
+            @role('beneficiario')
+            <x-responsive-nav-link :href="route('ideas.mine')" :active="request()->routeIs('ideas.mine')">Mis ideas</x-responsive-nav-link>
+            @endrole
             @can('viewAny', App\Models\Assignment::class)
             <x-responsive-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-responsive-nav-link>
             @endcan

@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class AttachmentResource extends Resource
 {
@@ -19,6 +20,13 @@ class AttachmentResource extends Resource
 
     // 2. Icono e Identificación en la Barra Lateral
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-paper-clip';
+
+    protected static ?string $navigationLabel = 'Adjuntos';
+
+    protected static ?string $modelLabel = 'adjunto';
+
+    protected static ?string $pluralModelLabel = 'adjuntos';
+
     protected static ?string $recordTitleAttribute = 'file_name';
 
     // 3. Definición del Formulario (Crear y Editar)
@@ -27,12 +35,15 @@ class AttachmentResource extends Resource
         return $schema
             ->components([
                 Forms\Components\Select::make('project_idea_id')
+                    ->label('Proyecto')
                     ->relationship('projectIdea', 'title')
                     ->searchable()
                     ->preload()
+                    ->helperText('Máximo '.ProjectIdea::MAX_ATTACHMENTS.' archivos por idea.')
                     ->required(),
 
                 Forms\Components\TextInput::make('file_name')
+                    ->label('Nombre del archivo')
                     ->required()
                     ->maxLength(255),
 
@@ -47,6 +58,7 @@ class AttachmentResource extends Resource
                     ->required(),
 
                 Forms\Components\TextInput::make('file_type')
+                    ->label('Tipo de archivo')
                     ->placeholder('ej: pdf, png, jpg')
                     ->disabled()
                     ->dehydrated(),
@@ -54,6 +66,8 @@ class AttachmentResource extends Resource
                 Forms\Components\DateTimePicker::make('uploaded_at')
                     ->label('Subido el')
                     ->default(now())
+                    ->displayFormat('d/m/Y H:i')
+                    ->seconds(false)
                     ->disabled()
                     ->dehydrated(),
             ]);
@@ -65,6 +79,7 @@ class AttachmentResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('file_name')
+                    ->label('Archivo')
                     ->searchable()
                     ->sortable(),
 
@@ -74,10 +89,12 @@ class AttachmentResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('file_type')
+                    ->label('Tipo')
                     ->badge(),
 
                 Tables\Columns\TextColumn::make('uploaded_at')
-                    ->dateTime()
+                    ->label('Subido el')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->actions([
@@ -85,7 +102,7 @@ class AttachmentResource extends Resource
                 Action::make('download')
                     ->label('Descargar')
                     ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn (Attachment $record) => \Illuminate\Support\Facades\Storage::disk('public')->url($record->file_path))
+                    ->url(fn (Attachment $record) => Storage::disk('public')->url($record->file_path))
                     ->openUrlInNewTab(),
             ]);
     }

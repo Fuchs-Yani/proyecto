@@ -9,6 +9,7 @@ use Filament\Panel; // Importar Panel para el type-hinting
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -33,6 +34,28 @@ class User extends Authenticatable implements FilamentUser // 2. Implementar Fil
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Ideas publicadas por el usuario.
+     */
+    public function projectIdeas(): HasMany
+    {
+        return $this->hasMany(ProjectIdea::class, 'organizer_id');
+    }
+
+    /**
+     * Antes de borrar al usuario, elimina sus ideas mediante Eloquent para que
+     * también se borren definitivamente los archivos de sus adjuntos. Si no,
+     * la FK en cascada borra las filas pero deja los archivos huérfanos.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user): void {
+            $user->projectIdeas()->get()->each(function (ProjectIdea $projectIdea): void {
+                $projectIdea->delete();
+            });
+        });
     }
 
     /**

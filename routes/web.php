@@ -30,6 +30,7 @@ Route::get('/dashboard', function () {
 
 // Crear idea: solo usuarios autenticados con permiso (beneficiario/admin)
 Route::middleware('auth')->group(function () {
+    Route::get('/mis-ideas', [ProjectIdeaController::class, 'mine'])->name('ideas.mine');
     Route::get('/ideas/crear', [ProjectIdeaController::class, 'create'])->name('ideas.create');
     Route::post('/ideas', [ProjectIdeaController::class, 'store'])->name('ideas.store');
 });

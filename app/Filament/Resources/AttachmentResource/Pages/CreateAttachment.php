@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\AttachmentResource\Pages;
 
 use App\Filament\Resources\AttachmentResource;
+use App\Models\ProjectIdea;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class CreateAttachment extends CreateRecord
 {
@@ -24,5 +27,22 @@ class CreateAttachment extends CreateRecord
         }
 
         return $data;
+    }
+
+    /**
+     * Impide crear más adjuntos que los permitidos por idea.
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        /** @var ProjectIdea|null $idea */
+        $idea = ProjectIdea::find($data['project_idea_id'] ?? null);
+
+        if ($idea?->hasReachedAttachmentLimit()) {
+            throw ValidationException::withMessages([
+                'data.project_idea_id' => 'Esta idea ya tiene el máximo de '.ProjectIdea::MAX_ATTACHMENTS.' archivos adjuntos.',
+            ]);
+        }
+
+        return parent::handleRecordCreation($data);
     }
 }

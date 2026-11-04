@@ -47,6 +47,14 @@
             @endif
         </div>
 
+        @if ($user->hasRole('beneficiario') || filled($user->institution_name))
+            <div>
+                <x-input-label for="institution_name" :value="__('Institución u organización')" />
+                <x-text-input id="institution_name" name="institution_name" type="text" class="mt-1 block w-full" :value="old('institution_name', $user->institution_name)" autocomplete="organization" placeholder="Ej. Nombre de la institución" />
+                <x-input-error class="mt-2" :messages="$errors->get('institution_name')" />
+            </div>
+        @endif
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

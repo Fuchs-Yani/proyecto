@@ -31,7 +31,7 @@ test('el dashboard del estudiante muestra directamente las ideas publicadas', fu
 
     $this->actingAs($student)->get('/dashboard')
         ->assertOk()
-        ->assertSee('Dashboard')
+        ->assertSee('Panel')
         ->assertSee('Ideas publicadas')
         ->assertSee('Idea publicada para estudiantes')
         ->assertSee('Postularme')
