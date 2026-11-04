@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\ProjectIdea;
+use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
 class ProjectIdeaPolicy
 {
-    use \Illuminate\Auth\Access\HandlesAuthorization;
+    use HandlesAuthorization;
 
     public function viewAny(AuthUser $authUser): bool
     {
@@ -23,7 +24,22 @@ class ProjectIdeaPolicy
 
     public function create(AuthUser $authUser): bool
     {
-        return $authUser->can('Create:ProjectIdea');
+        if (! $authUser->can('Create:ProjectIdea')) {
+            return false;
+        }
+
+        return ! $this->hasReachedIdeaLimit($authUser);
+    }
+
+    /**
+     * Un beneficiario puede publicar una única idea.
+     */
+    private function hasReachedIdeaLimit(AuthUser $authUser): bool
+    {
+        return method_exists($authUser, 'hasRole')
+            && method_exists($authUser, 'projectIdeas')
+            && $authUser->hasRole('beneficiario')
+            && $authUser->projectIdeas()->exists();
     }
 
     public function update(AuthUser $authUser, ProjectIdea $projectIdea): bool

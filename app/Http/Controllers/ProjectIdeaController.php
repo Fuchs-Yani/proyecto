@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProjectIdea;
 use App\Models\Tag;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,10 @@ class ProjectIdeaController extends Controller
     // GET /ideas/crear - formulario para publicar una idea
     public function create()
     {
+        if ($this->reachedBeneficiaryIdeaLimit()) {
+            return $this->redirectToOwnIdeas();
+        }
+
         $this->authorize('create', ProjectIdea::class);
 
         return view('ideas.create');
@@ -21,6 +26,10 @@ class ProjectIdeaController extends Controller
     // POST /ideas - guarda la idea del beneficiario autenticado
     public function store(Request $request)
     {
+        if ($this->reachedBeneficiaryIdeaLimit()) {
+            return $this->redirectToOwnIdeas();
+        }
+
         $this->authorize('create', ProjectIdea::class);
 
         $data = $request->validate([
@@ -189,6 +198,25 @@ class ProjectIdeaController extends Controller
             : false;
 
         return view('ideas.show', compact('projectIdea', 'alreadyApplied'));
+    }
+
+    /**
+     * Indica si el beneficiario autenticado ya publicó su única idea permitida.
+     */
+    private function reachedBeneficiaryIdeaLimit(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null
+            && $user->hasRole('beneficiario')
+            && $user->projectIdeas()->exists();
+    }
+
+    private function redirectToOwnIdeas(): RedirectResponse
+    {
+        return redirect()
+            ->route('ideas.mine')
+            ->with('status', 'Ya publicaste tu idea. Solo se permite una idea por beneficiario.');
     }
 
     /**

@@ -79,7 +79,10 @@ class ProjectIdea extends Model
     }
 
     /**
-     * Filtra ideas por el nombre de la idea o de quien la publicó.
+     * Filtra ideas por etiqueta exacta, nombre de la idea o de quien la publicó.
+     *
+     * Si el texto coincide con una etiqueta existente, se muestran únicamente
+     * las ideas que tienen esa etiqueta.
      */
     public function scopeSearch(Builder $query, ?string $term): Builder
     {
@@ -89,15 +92,19 @@ class ProjectIdea extends Model
             return $query;
         }
 
+        $tag = Tag::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($term)])
+            ->first();
+
+        if ($tag !== null) {
+            return $query->whereHas('tags', fn (Builder $tags) => $tags->whereKey($tag->id));
+        }
+
         return $query->where(function (Builder $query) use ($term): void {
             $query->where('title', 'like', '%'.$term.'%')
                 ->orWhereHas(
                     'organizer',
                     fn (Builder $organizer) => $organizer->where('name', 'like', '%'.$term.'%'),
-                )
-                ->orWhereHas(
-                    'tags',
-                    fn (Builder $tag) => $tag->where('name', 'like', '%'.$term.'%'),
                 );
         });
     }

@@ -51,7 +51,7 @@
                 @endforeach
             </div>
 
-            <p class="text-xs text-slate-500">La idea se publicará como <b>Disponible</b> para que los estudiantes puedan postularse.</p>
+            <p class="text-xs text-slate-500">La idea se publicará como <b>Disponible</b> para que los estudiantes puedan postularse. Recordá que se permite <b>una idea por beneficiario</b>.</p>
 
             <div class="flex items-center justify-end gap-2">
                 <a href="{{ route('ideas.index') }}" class="px-4 py-2 border border-slate-300 rounded-md text-sm">Cancelar</a>

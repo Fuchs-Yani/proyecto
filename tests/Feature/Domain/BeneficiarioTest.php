@@ -174,3 +174,56 @@ test('un estudiante no puede acceder a mis ideas', function () {
 
     $this->actingAs($student)->get('/mis-ideas')->assertForbidden();
 });
+
+test('un beneficiario que ya publico una idea no puede abrir el formulario de nueva idea', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    ProjectIdea::factory()->create(['organizer_id' => $beneficiario->id]);
+
+    $this->actingAs($beneficiario)
+        ->get('/ideas/crear')
+        ->assertRedirect('/mis-ideas')
+        ->assertSessionHas('status', 'Ya publicaste tu idea. Solo se permite una idea por beneficiario.');
+});
+
+test('un beneficiario que ya publico una idea no puede crear otra', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    ProjectIdea::factory()->create(['organizer_id' => $beneficiario->id]);
+
+    $this->actingAs($beneficiario)->post('/ideas', [
+        'title' => 'Segunda idea no permitida',
+        'description' => 'No debería guardarse.',
+    ])->assertRedirect('/mis-ideas');
+
+    expect(ProjectIdea::where('title', 'Segunda idea no permitida')->exists())->toBeFalse()
+        ->and($beneficiario->projectIdeas()->count())->toBe(1);
+});
+
+test('el boton nueva idea desaparece cuando el beneficiario ya tiene su idea', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    ProjectIdea::factory()->create(['organizer_id' => $beneficiario->id]);
+
+    $this->actingAs($beneficiario)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Mis ideas')
+        ->assertDontSee('Nueva idea');
+});
+
+test('un administrador no tiene el limite de una idea', function () {
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'])
+        ->syncPermissions(['ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea']);
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    ProjectIdea::factory()->create(['organizer_id' => $admin->id]);
+
+    $this->actingAs($admin)
+        ->get('/ideas/crear')
+        ->assertOk();
+});

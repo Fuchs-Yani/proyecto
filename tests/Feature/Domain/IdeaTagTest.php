@@ -53,6 +53,31 @@ test('como maximo se guardan tres etiquetas por idea', function () {
         ->and($idea->tags->pluck('name')->all())->toEqualCanonicalizing(['uno', 'dos', 'tres']);
 });
 
+test('buscar una etiqueta exacta muestra solo las ideas con esa etiqueta', function () {
+    $conTag = ProjectIdea::factory()->create(['title' => 'Recordatorio de medicación']);
+    $conTag->tags()->attach(Tag::create(['name' => 'salud']));
+
+    ProjectIdea::factory()->create(['title' => 'App de salud para mascotas']);
+
+    $this->actingAs($this->beneficiario)
+        ->get('/ideas?search=salud')
+        ->assertOk()
+        ->assertSee('Recordatorio de medicación')
+        ->assertDontSee('App de salud para mascotas')
+        ->assertSee('Ideas con la etiqueta «salud»');
+});
+
+test('la busqueda por etiqueta no distingue mayusculas', function () {
+    $conTag = ProjectIdea::factory()->create(['title' => 'Catálogo de libros']);
+    $conTag->tags()->attach(Tag::create(['name' => 'Educación']));
+
+    $this->actingAs($this->beneficiario)
+        ->get('/ideas?search=EDUCACIÓN')
+        ->assertOk()
+        ->assertSee('Catálogo de libros')
+        ->assertSee('Ideas con la etiqueta «Educación»');
+});
+
 test('el buscador encuentra ideas por el nombre de una etiqueta', function () {
     $idea = ProjectIdea::factory()->create(['title' => 'Sistema de biblioteca escolar']);
     $idea->tags()->attach(Tag::create(['name' => 'educación']));

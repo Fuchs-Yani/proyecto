@@ -1,6 +1,14 @@
+@php
+    $searchTerm = trim((string) request('search'));
+    $searchTag = $searchTerm === ''
+        ? null
+        : ($tags ?? collect())->first(fn ($tag) => mb_strtolower($tag->name) === mb_strtolower($searchTerm));
+@endphp
+
 <form method="GET" action="{{ $action }}" class="flex flex-wrap items-center gap-2">
     <input type="search" name="search" value="{{ request('search') }}"
-        placeholder="Buscar por nombre de idea, beneficiario o etiqueta…"
+        placeholder="Buscar por nombre, beneficiario o etiqueta…"
+        spellcheck="false"
         class="w-full sm:w-72 rounded-md border border-slate-300 p-2 text-sm" />
 
     <select name="tag" class="w-full sm:w-48 rounded-md border border-slate-300 p-2 text-sm">
@@ -18,13 +26,15 @@
 
 @if (request()->filled('search') || request()->filled('tag'))
     <p class="text-sm text-slate-500">
-        @if (request()->filled('search'))
+        @if ($searchTag)
+            Ideas con la etiqueta «{{ $searchTag->name }}»
+        @elseif (request()->filled('search'))
             Resultados para «{{ request('search') }}»
         @else
             Resultados
         @endif
         @if (request()->filled('tag'))
-            con etiqueta «{{ optional(($tags ?? collect())->firstWhere('id', (int) request('tag')))->name ?? request('tag') }}»
+            con la etiqueta «{{ optional(($tags ?? collect())->firstWhere('id', (int) request('tag')))->name ?? request('tag') }}»
         @endif
         : {{ $ideas->total() }}.
     </p>
