@@ -5,6 +5,13 @@
         <div>
             <a href="{{ route('ideas.show', $idea) }}" class="font-bold text-slate-900">{{ $idea->title }}</a>
             <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$idea->status] ?? $idea->status }} · 📎 {{ $idea->attachments->count() }}@if ($idea->max_students !== null) · 👥 {{ $idea->activeAssignmentsCount() }}/{{ $idea->max_students }} postulantes @endif</p>
+            @if ($idea->tags->isNotEmpty())
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                    @foreach ($idea->tags as $tag)
+                        <a href="{{ route('ideas.index', ['tag' => $tag->id]) }}" class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-xs text-slate-600 hover:bg-slate-200">#{{ $tag->name }}</a>
+                    @endforeach
+                </div>
+            @endif
         </div>
         <div class="flex gap-2 items-center">
             <a href="{{ route('ideas.show', $idea) }}" class="px-3 py-1.5 border border-slate-300 rounded-md text-sm">Ver</a>

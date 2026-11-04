@@ -15,6 +15,30 @@
 
         <div class="bg-white border border-slate-200 rounded-lg p-4"><p class="text-sm">{{ $projectIdea->description }}</p></div>
 
+        <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
+            <h3 class="font-bold text-slate-900 text-sm">Etiquetas</h3>
+            @if ($projectIdea->tags->isNotEmpty())
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach ($projectIdea->tags as $tag)
+                        <a href="{{ route('ideas.index', ['tag' => $tag->id]) }}" class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-xs text-slate-600 hover:bg-slate-200">#{{ $tag->name }}</a>
+                    @endforeach
+                </div>
+            @else
+                <p class="text-sm text-slate-500">Esta idea todavía no tiene etiquetas.</p>
+            @endif
+
+            @can('update', $projectIdea)
+                <form method="POST" action="{{ route('ideas.tags.update', $projectIdea) }}" class="flex flex-wrap items-center gap-2 pt-1">@csrf @method('PATCH')
+                    <input type="text" name="tags" value="{{ $projectIdea->tags->pluck('name')->implode(', ') }}"
+                        placeholder="Ej. educación, gestión, web"
+                        class="w-full sm:w-80 rounded-md border border-slate-300 p-2 text-sm" />
+                    <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Guardar etiquetas</button>
+                </form>
+                <p class="text-xs text-slate-500">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}.</p>
+                @error('tags')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+            @endcan
+        </div>
+
         @can('delete', $projectIdea)
             <form method="POST" action="{{ route('ideas.destroy', $projectIdea) }}"
                 onsubmit="return confirm('¿Eliminar esta idea? También se borrarán sus archivos y postulaciones.');">

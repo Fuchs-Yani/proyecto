@@ -24,6 +24,14 @@
             </div>
 
             <div>
+                <x-input-label for="tags" :value="__('Etiquetas (opcional)')" />
+                <x-text-input id="tags" name="tags" type="text" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900"
+                    :value="old('tags')" placeholder="Ej. educación, gestión, web" />
+                <p class="text-xs text-slate-500 mt-2">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}. Sirven para que otros encuentren tu idea.</p>
+                <x-input-error :messages="$errors->get('tags')" class="mt-2" />
+            </div>
+
+            <div>
                 <x-input-label for="attachments" :value="__('Documentos e imágenes de apoyo (opcional)')" />
                 <div class="mt-1 flex flex-wrap items-center gap-3">
                     <input id="attachments" name="attachments[]" type="file" multiple

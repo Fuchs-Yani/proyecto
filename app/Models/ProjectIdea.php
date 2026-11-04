@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProjectIdea extends Model
@@ -15,6 +17,11 @@ class ProjectIdea extends Model
      * Cantidad máxima de archivos adjuntos permitidos por idea.
      */
     public const MAX_ATTACHMENTS = 2;
+
+    /**
+     * Cantidad máxima de etiquetas permitidas por idea.
+     */
+    public const MAX_TAGS = 3;
 
     protected $table = 'project_ideas';
 
@@ -72,6 +79,30 @@ class ProjectIdea extends Model
     }
 
     /**
+     * Filtra ideas por el nombre de la idea o de quien la publicó.
+     */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($term): void {
+            $query->where('title', 'like', '%'.$term.'%')
+                ->orWhereHas(
+                    'organizer',
+                    fn (Builder $organizer) => $organizer->where('name', 'like', '%'.$term.'%'),
+                )
+                ->orWhereHas(
+                    'tags',
+                    fn (Builder $tag) => $tag->where('name', 'like', '%'.$term.'%'),
+                );
+        });
+    }
+
+    /**
      * Al eliminar la idea, elimina sus adjuntos mediante Eloquent para que el
      * modelo Attachment borre cada archivo físico del disco. Las filas que
      * queden se eliminan por la FK en cascada.
@@ -98,5 +129,10 @@ class ProjectIdea extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class, 'project_idea_id');
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'project_idea_tag')->withTimestamps();
     }
 }

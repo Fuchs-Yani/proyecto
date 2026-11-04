@@ -68,6 +68,21 @@ class ProjectIdeaResource extends Resource
                     ])
                     ->default('available')
                     ->required(),
+                Forms\Components\Select::make('tags')
+                    ->label('Etiquetas')
+                    ->relationship('tags', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nombre de la etiqueta')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->maxItems(ProjectIdea::MAX_TAGS)
+                    ->helperText('Elegí hasta '.ProjectIdea::MAX_TAGS.' etiquetas para que la idea sea fácil de encontrar.')
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('max_students')
                     ->label('Máximo de postulantes')
                     ->numeric()
@@ -94,6 +109,11 @@ class ProjectIdeaResource extends Resource
                         'cancelled' => 'Cancelado',
                         default => $state,
                     }),
+                Tables\Columns\TextColumn::make('tags.name')
+                    ->label('Etiquetas')
+                    ->badge()
+                    ->separator(',')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('applicants')
                     ->label('Postulantes / cupo')
                     ->state(fn (ProjectIdea $record): string => $record->max_students === null

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Attachment;
 use App\Models\ProjectIdea;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +53,12 @@ class BeneficiaryProjectsSeeder extends Seeder
 
             $directory = 'attachments/beneficiarios/'.$data['slug'];
 
+            $tagIds = collect($data['idea']['tags'] ?? [])
+                ->map(fn (string $tag): int => Tag::firstOrCreate(['name' => $tag])->id)
+                ->all();
+
+            $idea->tags()->sync($tagIds);
+
             $this->storeDocument($idea, $directory, $data);
             $this->storeInspiration($idea, $directory, $data);
         }
@@ -77,6 +84,7 @@ class BeneficiaryProjectsSeeder extends Seeder
                 'idea' => [
                     'title' => 'Sistema web para mostrar animalitos en adopción',
                     'description' => 'Un sitio web para que el refugio muestre los animales disponibles y las personas puedan iniciar una solicitud de adopción.',
+                    'tags' => ['adopción', 'animales'],
                 ],
                 'document_subtitle' => 'Refugio Huellitas de Esperanza · Documento de requerimientos',
                 'sections' => [
@@ -134,6 +142,7 @@ class BeneficiaryProjectsSeeder extends Seeder
                 'idea' => [
                     'title' => 'Sistema de gestión para la biblioteca escolar',
                     'description' => 'Un sistema para catalogar los libros de la escuela, registrar préstamos y devoluciones y conocer la disponibilidad en tiempo real.',
+                    'tags' => ['educación', 'biblioteca'],
                 ],
                 'document_subtitle' => 'Escuela Primaria N° 12 · Documento de requerimientos',
                 'sections' => [
@@ -191,6 +200,7 @@ class BeneficiaryProjectsSeeder extends Seeder
                 'idea' => [
                     'title' => 'Sistema de gestión para una despensa',
                     'description' => 'Un sistema para controlar productos, ventas, compras y stock de una despensa, con alertas y reportes básicos.',
+                    'tags' => ['comercio', 'inventario'],
                 ],
                 'document_subtitle' => 'María González · Documento de requerimientos',
                 'sections' => [
@@ -248,6 +258,7 @@ class BeneficiaryProjectsSeeder extends Seeder
                 'idea' => [
                     'title' => 'Sistema de gestión para tomar medicación',
                     'description' => 'Una aplicación para registrar medicamentos, recibir recordatorios y llevar un historial de dosis tomadas.',
+                    'tags' => ['salud', 'recordatorios'],
                 ],
                 'document_subtitle' => 'Lucía Fernández · Documento de requerimientos',
                 'sections' => [

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProjectIdea;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,9 +26,11 @@ class ProjectIdeaController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
+            'tags' => ['nullable', 'string', 'max:255'],
             'attachments' => ['nullable', 'array', 'max:'.ProjectIdea::MAX_ATTACHMENTS],
             'attachments.*' => ['file', 'mimes:pdf,jpg,jpeg,png,webp,gif', 'max:10240'],
         ], [
+            'tags.max' => 'Las etiquetas no pueden superar los 255 caracteres.',
             'attachments.array' => 'Los archivos no se enviaron correctamente.',
             'attachments.max' => 'Solo podés adjuntar hasta '.ProjectIdea::MAX_ATTACHMENTS.' archivos por idea.',
             'attachments.*.file' => 'Uno de los archivos no es válido.',
@@ -37,15 +40,18 @@ class ProjectIdeaController extends Controller
         ]);
 
         $storedPaths = [];
+        $tagIds = $this->tagIdsFrom($data['tags'] ?? null);
 
         try {
-            $idea = DB::transaction(function () use ($data, $request, &$storedPaths) {
+            $idea = DB::transaction(function () use ($data, $request, $tagIds, &$storedPaths) {
                 $idea = ProjectIdea::create([
                     'organizer_id' => auth()->id(),
                     'title' => $data['title'],
                     'description' => $data['description'],
                     'status' => 'available',
                 ]);
+
+                $idea->tags()->sync($tagIds);
 
                 foreach ((array) $request->file('attachments', []) as $file) {
                     $path = $file->store('attachments', 'public');
@@ -85,38 +91,64 @@ class ProjectIdeaController extends Controller
             ->with('status', 'Idea eliminada correctamente.');
     }
 
+    // PATCH /ideas/{projectIdea}/etiquetas - el dueño (o admin) actualiza las etiquetas
+    public function updateTags(Request $request, ProjectIdea $projectIdea)
+    {
+        $this->authorize('update', $projectIdea);
+
+        $data = $request->validate([
+            'tags' => ['nullable', 'string', 'max:255'],
+        ], [
+            'tags.max' => 'Las etiquetas no pueden superar los 255 caracteres.',
+        ]);
+
+        $projectIdea->tags()->sync($this->tagIdsFrom($data['tags'] ?? null));
+
+        return back()->with('status', 'Etiquetas actualizadas.');
+    }
+
     // GET /mis-ideas - el beneficiario ve únicamente las ideas que publicó
-    public function mine()
+    public function mine(Request $request)
     {
         abort_unless(auth()->user()->hasRole('beneficiario'), 403);
 
         $ideas = ProjectIdea::query()
-            ->with(['organizer', 'attachments'])
+            ->with(['organizer', 'attachments', 'tags'])
             ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
             ->where('organizer_id', auth()->id())
+            ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tag) => $tag->whereKey($request->query('tag'))))
+            ->search($request->query('search'))
             ->latest()
-            ->paginate(12);
+            ->paginate(12)
+            ->withQueryString();
 
-        return view('ideas.mine', compact('ideas'));
+        $tags = Tag::orderBy('name')->get();
+
+        return view('ideas.mine', compact('ideas', 'tags'));
     }
 
     // GET /ideas - invitados ven terminados; usuarios con permiso ven disponibles
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
 
         $ideas = ProjectIdea::query()
-            ->with(['organizer', 'attachments'])
+            ->with(['organizer', 'attachments', 'tags'])
             ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
             ->when(
                 $user?->can('ViewAny:ProjectIdea'),
                 fn ($query) => $query->where('status', 'available'),
                 fn ($query) => $query->where('status', 'completed'),
             )
+            ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tag) => $tag->whereKey($request->query('tag'))))
+            ->search($request->query('search'))
             ->latest()
-            ->paginate(12);
+            ->paginate(12)
+            ->withQueryString();
 
-        return view('ideas.index', compact('ideas'));
+        $tags = Tag::orderBy('name')->get();
+
+        return view('ideas.index', compact('ideas', 'tags'));
     }
 
     // GET /ideas/{projectIdea} - invitados solo pueden ver proyectos terminados
@@ -128,7 +160,7 @@ class ProjectIdeaController extends Controller
             abort_unless($projectIdea->status === 'completed', 404);
         }
 
-        $projectIdea->load(['organizer', 'attachments', 'assignments.student']);
+        $projectIdea->load(['organizer', 'attachments', 'tags', 'assignments.student']);
         $projectIdea->setAttribute(
             'active_assignments_count',
             $projectIdea->assignments->where('status', '!=', 'rejected')->count(),
@@ -139,5 +171,22 @@ class ProjectIdeaController extends Controller
             : false;
 
         return view('ideas.show', compact('projectIdea', 'alreadyApplied'));
+    }
+
+    /**
+     * Convierte el texto de etiquetas separadas por coma en IDs de etiquetas.
+     *
+     * @return array<int, int>
+     */
+    private function tagIdsFrom(?string $tags): array
+    {
+        return collect(explode(',', (string) $tags))
+            ->map(fn (string $tag): string => trim($tag))
+            ->filter()
+            ->unique(fn (string $tag): string => mb_strtolower($tag))
+            ->take(ProjectIdea::MAX_TAGS)
+            ->map(fn (string $tag): int => Tag::firstOrCreate(['name' => $tag])->id)
+            ->values()
+            ->all();
     }
 }
