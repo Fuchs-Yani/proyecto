@@ -53,10 +53,12 @@ class ProjectIdeaResource extends Resource
                 Forms\Components\TextInput::make('title')
                     ->label('Título')
                     ->required()
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->extraInputAttributes(['spellcheck' => 'false']),
                 Forms\Components\Textarea::make('description')
                     ->label('Descripción')
                     ->required()
+                    ->extraInputAttributes(['spellcheck' => 'false'])
                     ->columnSpanFull(),
                 Forms\Components\Select::make('status')
                     ->label('Estado')

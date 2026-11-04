@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::delete('/ideas/{projectIdea}', [ProjectIdeaController::class, 'destroy'])->name('ideas.destroy');
+    Route::patch('/ideas/{projectIdea}', [ProjectIdeaController::class, 'update'])->name('ideas.update');
     Route::patch('/ideas/{projectIdea}/etiquetas', [ProjectIdeaController::class, 'updateTags'])->name('ideas.tags.update');
 
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');

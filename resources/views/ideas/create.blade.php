@@ -11,13 +11,13 @@
             <div>
                 <x-input-label for="title" :value="__('Título')" />
                 <x-text-input id="title" name="title" type="text" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900"
-                    :value="old('title')" required autofocus placeholder="Ej. Sistema de reservas para el comedor" />
+                    :value="old('title')" required autofocus spellcheck="false" placeholder="Ej. Sistema de reservas para el comedor" />
                 <x-input-error :messages="$errors->get('title')" class="mt-2" />
             </div>
 
             <div>
                 <x-input-label for="description" :value="__('Descripción')" />
-                <textarea id="description" name="description" rows="6" required
+                <textarea id="description" name="description" rows="6" required spellcheck="false"
                     class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm"
                     placeholder="Contanos con tus palabras qué necesitás, para qué lo usarías y cómo te gustaría que funcione.">{{ old('description') }}</textarea>
                 <x-input-error :messages="$errors->get('description')" class="mt-2" />
@@ -26,7 +26,7 @@
             <div>
                 <x-input-label for="tags" :value="__('Etiquetas (opcional)')" />
                 <x-text-input id="tags" name="tags" type="text" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900"
-                    :value="old('tags')" placeholder="Ej. educación, gestión, web" />
+                    :value="old('tags')" spellcheck="false" placeholder="Ej. educación, gestión, web" />
                 <p class="text-xs text-slate-500 mt-2">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}. Sirven para que otros encuentren tu idea.</p>
                 <x-input-error :messages="$errors->get('tags')" class="mt-2" />
             </div>

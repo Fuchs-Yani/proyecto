@@ -91,6 +91,24 @@ class ProjectIdeaController extends Controller
             ->with('status', 'Idea eliminada correctamente.');
     }
 
+    // PATCH /ideas/{projectIdea} - el dueño (o admin) edita la descripción
+    public function update(Request $request, ProjectIdea $projectIdea)
+    {
+        $this->authorize('update', $projectIdea);
+
+        $data = $request->validate([
+            'description' => ['required', 'string'],
+        ], [
+            'description.required' => 'La descripción de la idea es obligatoria.',
+        ]);
+
+        $projectIdea->update([
+            'description' => $data['description'],
+        ]);
+
+        return back()->with('status', 'Descripción actualizada.');
+    }
+
     // PATCH /ideas/{projectIdea}/etiquetas - el dueño (o admin) actualiza las etiquetas
     public function updateTags(Request $request, ProjectIdea $projectIdea)
     {

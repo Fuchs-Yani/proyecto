@@ -15,29 +15,150 @@
 
         <div class="bg-white border border-slate-200 rounded-lg p-4"><p class="text-sm">{{ $projectIdea->description }}</p></div>
 
-        <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
-            <h3 class="font-bold text-slate-900 text-sm">Etiquetas</h3>
-            @if ($projectIdea->tags->isNotEmpty())
-                <div class="flex flex-wrap gap-1.5">
-                    @foreach ($projectIdea->tags as $tag)
-                        <a href="{{ route('ideas.index', ['tag' => $tag->id]) }}" class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-xs text-slate-600 hover:bg-slate-200">#{{ $tag->name }}</a>
-                    @endforeach
+        @can('update', $projectIdea)
+            @php
+                $openPanel = match (session('status')) {
+                    'Descripción actualizada.' => 'descripcion',
+                    'Etiquetas actualizadas.' => 'etiquetas',
+                    'Archivo subido.', 'Archivo eliminado.' => 'adjuntos',
+                    default => $errors->has('file') ? 'adjuntos' : null,
+                };
+            @endphp
+            <div x-data="{ menu: false, panel: @js($openPanel) }" class="space-y-3">
+                <div class="relative inline-block">
+                    <button type="button" @click="menu = !menu"
+                        class="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-md text-sm bg-white hover:bg-slate-50">
+                        Editar idea <span class="text-[10px]">▼</span>
+                    </button>
+                    <div x-show="menu" x-cloak @click.outside="menu = false"
+                        class="absolute z-20 mt-1 w-64 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
+                        <button type="button" @click="panel = 'descripcion'; menu = false"
+                            class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">Descripción de la idea</button>
+                        <button type="button" @click="panel = 'adjuntos'; menu = false"
+                            class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">Adjuntos ({{ $projectIdea->attachments->count() }}/{{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }})</button>
+                        <button type="button" @click="panel = 'etiquetas'; menu = false"
+                            class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50">Etiquetas</button>
+                    </div>
                 </div>
-            @else
-                <p class="text-sm text-slate-500">Esta idea todavía no tiene etiquetas.</p>
+
+                <div x-show="panel === 'descripcion'" x-cloak class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                    <h3 class="font-bold text-slate-900 text-sm">Descripción de la idea</h3>
+                    <form method="POST" action="{{ route('ideas.update', $projectIdea) }}" class="space-y-2">
+                        @csrf
+                        @method('PATCH')
+                        <textarea name="description" rows="6" required spellcheck="false"
+                            class="block w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm">{{ old('description', $projectIdea->description) }}</textarea>
+                        @error('description')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                        <div class="flex items-center gap-2">
+                            <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Guardar descripción</button>
+                            <button type="button" @click="panel = null" class="px-4 py-2 border border-slate-300 rounded-md text-sm">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div x-show="panel === 'adjuntos'" x-cloak class="bg-white border border-slate-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-900 text-sm">Adjuntos ({{ $projectIdea->attachments->count() }}/{{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }})</h3>
+                        <button type="button" @click="panel = null" class="text-sm text-slate-500 underline">Cerrar</button>
+                    </div>
+                    @forelse($projectIdea->attachments as $a)
+                        <div class="flex items-center justify-between gap-3 py-2 text-sm border-b border-slate-100">
+                            <div class="flex items-center gap-3 min-w-0">
+                                @if (in_array(strtolower($a->file_type), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true))
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($a->file_path) }}"
+                                        alt="{{ $a->file_name }}"
+                                        class="h-14 w-14 object-cover rounded border border-slate-200">
+                                @else
+                                    <span class="h-14 w-14 flex items-center justify-center rounded border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">{{ strtoupper($a->file_type ?: 'ARCHIVO') }}</span>
+                                @endif
+                                <span class="truncate">{{ $a->file_name }} ({{ strtoupper($a->file_type) }})</span>
+                            </div>
+                            <span class="flex gap-3 shrink-0">
+                                @can('view', $a)<a href="{{ route('attachments.download', $a) }}" class="underline">Descargar</a>@endcan
+                                @can('delete', $a)
+                                    <form method="POST" action="{{ route('attachments.destroy', $a) }}">@csrf @method('DELETE')<button class="text-red-700">Eliminar</button></form>
+                                @endcan
+                            </span>
+                        </div>
+                    @empty
+                        <p class="text-sm text-slate-500 py-2">Sin archivos.</p>
+                    @endforelse
+                    @if ($projectIdea->hasReachedAttachmentLimit())
+                        <p class="text-xs text-slate-500 mt-3">Alcanzaste el máximo de {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea. Eliminá uno para poder subir otro.</p>
+                    @else
+                        @can('create', App\Models\Attachment::class)
+                            <form method="POST" action="{{ route('attachments.store', $projectIdea) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">@csrf
+                                <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="border border-slate-300 rounded p-1 text-sm" required>
+                                <button class="px-4 py-1.5 bg-slate-900 text-white rounded-md text-sm">Subir archivo</button>
+                            </form>
+                            <p class="text-xs text-slate-500 mt-1">PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB · hasta {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea</p>
+                        @endcan
+                    @endif
+                </div>
+
+                <div x-show="panel === 'etiquetas'" x-cloak class="bg-white border border-slate-200 rounded-lg p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-slate-900 text-sm">Etiquetas</h3>
+                        <button type="button" @click="panel = null" class="text-sm text-slate-500 underline">Cerrar</button>
+                    </div>
+                    @if ($projectIdea->tags->isNotEmpty())
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($projectIdea->tags as $tag)
+                                <a href="{{ route('ideas.index', ['tag' => $tag->id]) }}" class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-xs text-slate-600 hover:bg-slate-200">#{{ $tag->name }}</a>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-500">Esta idea todavía no tiene etiquetas.</p>
+                    @endif
+
+                    <form method="POST" action="{{ route('ideas.tags.update', $projectIdea) }}" class="flex flex-wrap items-center gap-2 pt-1">
+                        @csrf
+                        @method('PATCH')
+                        <input type="text" name="tags" value="{{ $projectIdea->tags->pluck('name')->implode(', ') }}"
+                            placeholder="Ej. educación, gestión, web" spellcheck="false"
+                            class="w-full sm:w-80 rounded-md border border-slate-300 p-2 text-sm" />
+                        <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Guardar etiquetas</button>
+                    </form>
+                    <p class="text-xs text-slate-500">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}.</p>
+                    @error('tags')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        @endcan
+
+        @cannot('update', $projectIdea)
+            @if ($projectIdea->tags->isNotEmpty())
+                <div class="bg-white border border-slate-200 rounded-lg p-4">
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach ($projectIdea->tags as $tag)
+                            <a href="{{ route('ideas.index', ['tag' => $tag->id]) }}" class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-full text-xs text-slate-600 hover:bg-slate-200">#{{ $tag->name }}</a>
+                        @endforeach
+                    </div>
+                </div>
             @endif
 
-            @can('update', $projectIdea)
-                <form method="POST" action="{{ route('ideas.tags.update', $projectIdea) }}" class="flex flex-wrap items-center gap-2 pt-1">@csrf @method('PATCH')
-                    <input type="text" name="tags" value="{{ $projectIdea->tags->pluck('name')->implode(', ') }}"
-                        placeholder="Ej. educación, gestión, web"
-                        class="w-full sm:w-80 rounded-md border border-slate-300 p-2 text-sm" />
-                    <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Guardar etiquetas</button>
-                </form>
-                <p class="text-xs text-slate-500">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}.</p>
-                @error('tags')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-            @endcan
-        </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <h3 class="font-bold text-slate-900 text-sm">Adjuntos ({{ $projectIdea->attachments->count() }}/{{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }})</h3>
+                @forelse($projectIdea->attachments as $a)
+                    <div class="flex items-center justify-between gap-3 py-2 text-sm border-b border-slate-100">
+                        <div class="flex items-center gap-3 min-w-0">
+                            @if (in_array(strtolower($a->file_type), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true))
+                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($a->file_path) }}"
+                                    alt="{{ $a->file_name }}"
+                                    class="h-14 w-14 object-cover rounded border border-slate-200">
+                            @else
+                                <span class="h-14 w-14 flex items-center justify-center rounded border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">{{ strtoupper($a->file_type ?: 'ARCHIVO') }}</span>
+                            @endif
+                            <span class="truncate">{{ $a->file_name }} ({{ strtoupper($a->file_type) }})</span>
+                        </div>
+                        <span class="flex gap-3 shrink-0">
+                            @can('view', $a)<a href="{{ route('attachments.download', $a) }}" class="underline">Descargar</a>@endcan
+                        </span>
+                    </div>
+                @empty
+                    <p class="text-sm text-slate-500 py-2">Sin archivos.</p>
+                @endforelse
+            </div>
+        @endcannot
 
         @can('delete', $projectIdea)
             <form method="POST" action="{{ route('ideas.destroy', $projectIdea) }}"
@@ -85,44 +206,5 @@
                 @endforelse
             </div>
         @endif
-
-        <div class="bg-white border border-slate-200 rounded-lg p-4">
-            <h3 class="font-bold text-slate-900 text-sm">Adjuntos ({{ $projectIdea->attachments->count() }}/{{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }})</h3>
-            @forelse($projectIdea->attachments as $a)
-                <div class="flex items-center justify-between gap-3 py-2 text-sm border-b border-slate-100">
-                    <div class="flex items-center gap-3 min-w-0">
-                        @if (in_array(strtolower($a->file_type), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true))
-                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($a->file_path) }}"
-                                alt="{{ $a->file_name }}"
-                                class="h-14 w-14 object-cover rounded border border-slate-200">
-                        @else
-                            <span class="h-14 w-14 flex items-center justify-center rounded border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">{{ strtoupper($a->file_type ?: 'ARCHIVO') }}</span>
-                        @endif
-                        <span class="truncate">{{ $a->file_name }} ({{ strtoupper($a->file_type) }})</span>
-                    </div>
-                    <span class="flex gap-3 shrink-0">
-                        @can('view', $a)<a href="{{ route('attachments.download', $a) }}" class="underline">Descargar</a>@endcan
-                        @can('delete', $a)
-                            @if(auth()->user()->hasRole('admin') || $projectIdea->organizer_id === auth()->id())
-                                <form method="POST" action="{{ route('attachments.destroy', $a) }}">@csrf @method('DELETE')<button class="text-red-700">Eliminar</button></form>
-                            @endif
-                        @endcan
-                    </span>
-                </div>
-            @empty<p class="text-sm text-slate-500">Sin archivos.</p>@endforelse
-            @if ($projectIdea->hasReachedAttachmentLimit())
-                <p class="text-xs text-slate-500 mt-3">Alcanzaste el máximo de {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea. Eliminá uno para poder subir otro.</p>
-            @else
-                @can('create', App\Models\Attachment::class)
-                    @if(auth()->user()->hasRole('admin') || $projectIdea->organizer_id === auth()->id())
-                        <form method="POST" action="{{ route('attachments.store', $projectIdea) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">@csrf
-                            <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="border border-slate-300 rounded p-1 text-sm" required>
-                            <button class="px-4 py-1.5 bg-slate-900 text-white rounded-md text-sm">Subir archivo</button>
-                        </form>
-                        <p class="text-xs text-slate-500 mt-1">PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB · hasta {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea</p>
-                    @endif
-                @endcan
-            @endif
-        </div>
     </div>
 </x-app-layout>

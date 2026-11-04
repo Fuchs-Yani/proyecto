@@ -13,7 +13,7 @@ beforeEach(function () {
     Storage::fake('public');
 
     $permissions = [
-        'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea',
+        'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea',
         'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Delete:Attachment',
     ];
 
@@ -97,6 +97,7 @@ test('la idea muestra el limite alcanzado y oculta el formulario de subida', fun
     $this->actingAs($beneficiario)
         ->get("/ideas/{$idea->id}")
         ->assertOk()
+        ->assertSee('Editar idea')
         ->assertSee('Adjuntos (2/2)')
         ->assertSee('Alcanzaste el máximo de 2 archivos por idea.')
         ->assertDontSee('Subir archivo');
