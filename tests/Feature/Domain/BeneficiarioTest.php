@@ -130,16 +130,47 @@ test('el beneficiario ve quienes se postulan solo a sus propias ideas', function
         ->assertDontSee('Alumno Postulante');
 });
 
-test('el dashboard del beneficiario solo muestra el boton nueva idea', function () {
+test('el dashboard del beneficiario muestra los botones mis ideas y nueva idea', function () {
     $beneficiario = User::factory()->create();
     $beneficiario->assignRole('beneficiario');
 
     $this->actingAs($beneficiario)->get('/dashboard')
         ->assertOk()
         ->assertSee('Panel')
+        ->assertSee('Mis ideas')
         ->assertSee('Nueva idea')
         ->assertDontSee('Banco de Ideas y Proyectos de Software')
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
         ->assertDontSee('Actualiza tus datos y tu contraseña.')
         ->assertDontSee('Todas las postulaciones');
+});
+
+test('el beneficiario ve solo sus propias ideas en mis ideas', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $otroBeneficiario = User::factory()->create();
+    $otroBeneficiario->assignRole('beneficiario');
+
+    ProjectIdea::factory()->create([
+        'organizer_id' => $beneficiario->id,
+        'title' => 'Idea propia del beneficiario',
+    ]);
+    ProjectIdea::factory()->create([
+        'organizer_id' => $otroBeneficiario->id,
+        'title' => 'Idea de otro beneficiario',
+    ]);
+
+    $this->actingAs($beneficiario)->get('/mis-ideas')
+        ->assertOk()
+        ->assertSee('Mis ideas')
+        ->assertSee('Idea propia del beneficiario')
+        ->assertDontSee('Idea de otro beneficiario');
+});
+
+test('un estudiante no puede acceder a mis ideas', function () {
+    $student = User::factory()->create();
+    $student->assignRole('student');
+
+    $this->actingAs($student)->get('/mis-ideas')->assertForbidden();
 });
