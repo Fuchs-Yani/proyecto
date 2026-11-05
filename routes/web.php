@@ -4,7 +4,10 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectIdeaController;
+use App\Http\Controllers\StudentController;
+use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -15,6 +18,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $ideas = null;
+    $stats = null;
 
     if (auth()->user()->hasRole('student')) {
         $ideas = ProjectIdea::query()
@@ -25,11 +29,21 @@ Route::get('/dashboard', function () {
             ->paginate(12);
     }
 
-    return view('dashboard', compact('ideas'));
+    if (auth()->user()->hasRole('profesor')) {
+        $stats = [
+            'students' => User::role('student')->count(),
+            'applications' => Assignment::count(),
+            'ideas' => ProjectIdea::count(),
+            'available' => ProjectIdea::where('status', 'available')->count(),
+        ];
+    }
+
+    return view('dashboard', compact('ideas', 'stats'));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Crear idea: solo usuarios autenticados con permiso (beneficiario/admin)
 Route::middleware('auth')->group(function () {
+    Route::get('/alumnos', [StudentController::class, 'index'])->name('professor.students');
     Route::get('/mis-ideas', [ProjectIdeaController::class, 'mine'])->name('ideas.mine');
     Route::get('/ideas/crear', [ProjectIdeaController::class, 'create'])->name('ideas.create');
     Route::post('/ideas', [ProjectIdeaController::class, 'store'])->name('ideas.store');

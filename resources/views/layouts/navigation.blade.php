@@ -14,6 +14,9 @@
                         @role('beneficiario')
                         <x-nav-link :href="route('ideas.mine')" :active="request()->routeIs('ideas.mine')">Mis ideas</x-nav-link>
                         @endrole
+                        @hasanyrole('profesor|admin')
+                        <x-nav-link :href="route('professor.students')" :active="request()->routeIs('professor.students')">Alumnos</x-nav-link>
+                        @endhasanyrole
                         @can('viewAny', App\Models\Assignment::class)
                         <x-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-nav-link>
                         @endcan
@@ -55,6 +58,9 @@
             @role('beneficiario')
             <x-responsive-nav-link :href="route('ideas.mine')" :active="request()->routeIs('ideas.mine')">Mis ideas</x-responsive-nav-link>
             @endrole
+            @hasanyrole('profesor|admin')
+            <x-responsive-nav-link :href="route('professor.students')" :active="request()->routeIs('professor.students')">Alumnos</x-responsive-nav-link>
+            @endhasanyrole
             @can('viewAny', App\Models\Assignment::class)
             <x-responsive-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-responsive-nav-link>
             @endcan

@@ -45,6 +45,14 @@ class User extends Authenticatable implements FilamentUser // 2. Implementar Fil
     }
 
     /**
+     * Postulaciones del usuario como estudiante.
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class, 'student_id');
+    }
+
+    /**
      * Antes de borrar al usuario, elimina sus ideas mediante Eloquent para que
      * también se borren definitivamente los archivos de sus adjuntos. Si no,
      * la FK en cascada borra las filas pero deja los archivos huérfanos.

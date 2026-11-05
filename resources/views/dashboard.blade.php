@@ -27,8 +27,34 @@
             </div>
 
             @include('ideas._list', ['ideas' => $ideas])
-        @elseif (auth()->user()->hasAnyRole(['profesor', 'beneficiario']))
-            {{-- Profesor y beneficiario navegan desde el menú superior; el dashboard no muestra módulos. --}}
+        @elseif (auth()->user()->hasRole('profesor'))
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">Hola, {{ auth()->user()->name }}</h2>
+                <p class="text-sm text-slate-500">Este es el resumen del banco de ideas y proyectos.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <a href="{{ route('professor.students') }}" class="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400">
+                    <p class="text-sm text-slate-500">Alumnos</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ $stats['students'] }}</p>
+                </a>
+                @can('viewAny', App\Models\Assignment::class)
+                <a href="{{ route('assignments.index') }}" class="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400">
+                    <p class="text-sm text-slate-500">Postulaciones</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ $stats['applications'] }}</p>
+                </a>
+                @endcan
+                <a href="{{ route('ideas.index') }}" class="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400">
+                    <p class="text-sm text-slate-500">Proyectos</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ $stats['ideas'] }}</p>
+                </a>
+                <a href="{{ route('ideas.index') }}" class="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400">
+                    <p class="text-sm text-slate-500">Ideas disponibles</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ $stats['available'] }}</p>
+                </a>
+            </div>
+        @elseif (auth()->user()->hasRole('beneficiario'))
+            {{-- El beneficiario navega desde el menú superior; el dashboard no muestra módulos. --}}
         @elseif (auth()->user()->hasRole('admin'))
             <div class="bg-slate-800 text-slate-100 rounded-lg px-6 py-3 text-sm text-center">Banco de Ideas y Proyectos de Software</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
