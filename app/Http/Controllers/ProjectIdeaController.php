@@ -187,7 +187,16 @@ class ProjectIdeaController extends Controller
             abort_unless($projectIdea->status === 'completed', 404);
         }
 
-        $projectIdea->load(['organizer', 'attachments', 'tags', 'assignments.student']);
+        $projectIdea->load([
+            'organizer',
+            'attachments',
+            'tags',
+            'assignments.student',
+            'assignments.updates.images',
+            'updates.student',
+            'updates.approver',
+            'updates.images',
+        ]);
         $projectIdea->setAttribute(
             'active_assignments_count',
             $projectIdea->assignments->where('status', '!=', 'rejected')->count(),

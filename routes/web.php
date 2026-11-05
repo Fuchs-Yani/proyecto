@@ -4,6 +4,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectIdeaController;
+use App\Http\Controllers\ProjectUpdateController;
 use App\Http\Controllers\StudentController;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
@@ -67,6 +68,10 @@ Route::middleware('auth')->group(function () {
     // STUDENT (+admin): postularse / retirar
     Route::post('/ideas/{projectIdea}/apply', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
+    // AVANCES: el alumno postulado envía avances y el profesor los aprueba
+    Route::post('/assignments/{assignment}/avances', [ProjectUpdateController::class, 'store'])->name('progress.store');
+    Route::get('/avances', [ProjectUpdateController::class, 'index'])->name('progress.index');
+    Route::patch('/avances/{projectUpdate}/aprobar', [ProjectUpdateController::class, 'approve'])->name('progress.approve');
     // ORGANIZATION (+admin): subir / borrar adjuntos propios
     Route::post('/ideas/{projectIdea}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');

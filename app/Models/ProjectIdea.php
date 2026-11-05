@@ -117,6 +117,10 @@ class ProjectIdea extends Model
     protected static function booted(): void
     {
         static::deleting(function (ProjectIdea $idea): void {
+            $idea->updates()->get()->each(function (ProjectUpdate $update): void {
+                $update->delete();
+            });
+
             $idea->attachments()->get()->each(function (Attachment $attachment): void {
                 $attachment->delete();
             });
@@ -136,6 +140,11 @@ class ProjectIdea extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class, 'project_idea_id');
+    }
+
+    public function updates(): HasMany
+    {
+        return $this->hasMany(ProjectUpdate::class, 'project_idea_id');
     }
 
     public function tags(): BelongsToMany

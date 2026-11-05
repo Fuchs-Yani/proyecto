@@ -5,24 +5,31 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AssignmentController extends Controller
 {
     // GET /assignments - ver según rol
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', Assignment::class);
         $user = auth()->user();
 
         if ($user->hasRole('student')) {
-            $assignments = Assignment::with('projectIdea')->where('student_id', $user->id)->latest()->paginate(10);
+            $assignments = Assignment::with(['projectIdea', 'updates.images'])
+                ->where('student_id', $user->id)
+                ->search($request->query('search'))
+                ->latest()->paginate(10)->withQueryString();
         } elseif ($user->hasRole('beneficiario')) {
             $assignments = Assignment::with(['projectIdea', 'student'])
                 ->whereHas('projectIdea', fn ($q) => $q->where('organizer_id', $user->id))
-                ->latest()->paginate(10);
+                ->search($request->query('search'))
+                ->latest()->paginate(10)->withQueryString();
         } else {
-            $assignments = Assignment::with(['projectIdea', 'student'])->latest()->paginate(10);
+            $assignments = Assignment::with(['projectIdea', 'student'])
+                ->search($request->query('search'))
+                ->latest()->paginate(10)->withQueryString();
         }
 
         return view('assignments.index', compact('assignments'));

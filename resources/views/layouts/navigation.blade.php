@@ -20,6 +20,9 @@
                         @can('viewAny', App\Models\Assignment::class)
                         <x-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-nav-link>
                         @endcan
+                        @can('viewAny', App\Models\ProjectUpdate::class)
+                        <x-nav-link :href="route('progress.index')" :active="request()->routeIs('progress.*')">Avances</x-nav-link>
+                        @endcan
                     @endauth
                 </div>
             </div>
@@ -28,7 +31,10 @@
                     <span class="text-xs bg-slate-100 border border-slate-200 rounded px-2 py-1">{{ auth()->user()->roleLabel() }}</span>
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button class="rounded-md px-2 py-1 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">{{ Auth::user()->name }}</button>
+                            <button class="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
+                                <x-avatar :user="Auth::user()" size="h-8 w-8" />
+                                <span class="hidden md:inline">{{ Auth::user()->name }}</span>
+                            </button>
                         </x-slot>
                         <x-slot name="content">
                             <x-dropdown-link :href="route('profile.edit')">Editar perfil</x-dropdown-link>
@@ -63,6 +69,9 @@
             @endhasanyrole
             @can('viewAny', App\Models\Assignment::class)
             <x-responsive-nav-link :href="route('assignments.index')" :active="request()->routeIs('assignments.*')">Postulaciones</x-responsive-nav-link>
+            @endcan
+            @can('viewAny', App\Models\ProjectUpdate::class)
+            <x-responsive-nav-link :href="route('progress.index')" :active="request()->routeIs('progress.*')">Avances</x-responsive-nav-link>
             @endcan
         @else
             <x-responsive-nav-link :href="route('login')" :active="request()->routeIs('login')">Ingresar</x-responsive-nav-link>

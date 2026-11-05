@@ -15,6 +15,36 @@
 
         <div class="bg-white border border-slate-200 rounded-lg p-4"><p class="text-sm">{{ $projectIdea->description }}</p></div>
 
+        @php
+            $viewer = auth()->user();
+            $canReviewUpdates = $viewer?->hasAnyRole(['admin', 'profesor']) ?? false;
+            $isBeneficiaryOwner = $viewer !== null && $projectIdea->organizer_id === $viewer->id;
+            $visibleUpdates = ($canReviewUpdates
+                ? $projectIdea->updates
+                : $projectIdea->updates->where('status', \App\Models\ProjectUpdate::STATUS_APPROVED))
+                ->sortByDesc('created_at');
+        @endphp
+
+        @if (($canReviewUpdates || $isBeneficiaryOwner) && $visibleUpdates->isNotEmpty())
+            <section class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="font-bold text-slate-900 text-sm">Avances del proyecto</h3>
+                    <span class="text-xs text-slate-500">
+                        {{ $visibleUpdates->count() }} {{ $visibleUpdates->count() === 1 ? 'avance' : 'avances' }}
+                    </span>
+                </div>
+                <div class="space-y-3">
+                    @foreach ($visibleUpdates as $update)
+                        <x-progress-card
+                            :update="$update"
+                            :show-student="$canReviewUpdates"
+                            :show-repository="$canReviewUpdates"
+                            :show-approve="$canReviewUpdates" />
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         @can('update', $projectIdea)
             @php
                 $openPanel = match (session('status')) {
@@ -88,7 +118,11 @@
                     @else
                         @can('create', App\Models\Attachment::class)
                             <form method="POST" action="{{ route('attachments.store', $projectIdea) }}" enctype="multipart/form-data" class="mt-3 flex flex-wrap items-center gap-2">@csrf
-                                <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="border border-slate-300 rounded p-1 text-sm" required>
+                                <input id="attachment_file" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif" class="peer sr-only" required>
+                                <label for="attachment_file" class="inline-flex cursor-pointer items-center rounded-md border border-slate-300 bg-white px-4 py-1.5 text-sm transition hover:bg-slate-50 peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 peer-focus-visible:ring-offset-2">
+                                    Elegir archivo
+                                </label>
+                                <span id="attachment_file_name" class="text-sm text-slate-600">Ningún archivo seleccionado</span>
                                 <button class="px-4 py-1.5 bg-slate-900 text-white rounded-md text-sm">Subir archivo</button>
                             </form>
                             <p class="text-xs text-slate-500 mt-1">PDF o imágenes (JPG, PNG, WEBP, GIF) · máx. 10 MB · hasta {{ \App\Models\ProjectIdea::MAX_ATTACHMENTS }} archivos por idea</p>
@@ -173,13 +207,34 @@
             @if (! $projectIdea->isOpenForApplications())
                 <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya no acepta postulaciones.</p>
             @elseif ($alreadyApplied)
-                <p class="bg-white border rounded-lg p-3 text-sm">Ya postulado.</p>
                 @php($mine = $projectIdea->assignments->firstWhere('student_id', auth()->id()))
-                @if ($mine)
-                    @can('delete', $mine)
-                        <form method="POST" action="{{ route('assignments.destroy', $mine) }}">@csrf @method('DELETE')<button class="px-3 py-1.5 border border-slate-300 rounded-md text-sm text-red-700">Retirar postulación</button></form>
-                    @endcan
-                @endif
+                <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm">Ya postulado.</p>
+                        @if ($mine)
+                            @can('delete', $mine)
+                                <form method="POST" action="{{ route('assignments.destroy', $mine) }}">@csrf @method('DELETE')<button class="px-3 py-1.5 border border-slate-300 rounded-md text-sm text-red-700">Retirar postulación</button></form>
+                            @endcan
+                        @endif
+                    </div>
+
+                    @if ($mine)
+                        @if ($mine->updates->isNotEmpty())
+                            <div class="space-y-2 border-t border-slate-100 pt-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mis avances</p>
+                                @foreach ($mine->updates->sortByDesc('created_at') as $update)
+                                    <x-progress-card :update="$update" :show-student="false" />
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if ($mine->status !== 'rejected')
+                            <div class="border-t border-slate-100 pt-3">
+                                <x-progress-form :assignment="$mine" />
+                            </div>
+                        @endif
+                    @endif
+                </div>
             @elseif (! $projectIdea->hasAvailableSlots())
                 <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya alcanzó el cupo máximo de postulantes.</p>
             @else
@@ -207,4 +262,16 @@
             </div>
         @endif
     </div>
+
+    <script>
+        document.getElementById('attachment_file')?.addEventListener('change', function () {
+            const output = document.getElementById('attachment_file_name');
+
+            if (! output) {
+                return;
+            }
+
+            output.textContent = this.files.length ? this.files[0].name : 'Ningún archivo seleccionado';
+        });
+    </script>
 </x-app-layout>

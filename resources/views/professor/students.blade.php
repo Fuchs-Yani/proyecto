@@ -7,6 +7,20 @@
     </x-slot>
 
     <div class="py-6 max-w-6xl mx-auto px-4">
+        <form method="GET" action="{{ route('professor.students') }}" class="mb-3 flex flex-wrap items-center gap-2">
+            <input type="search" name="search" value="{{ request('search') }}" spellcheck="false"
+                placeholder="Buscar por nombre, email o institución…"
+                class="w-full sm:w-80 rounded-md border border-slate-300 p-2 text-sm" />
+            <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Buscar</button>
+            @if (request()->filled('search'))
+                <a href="{{ route('professor.students') }}" class="px-4 py-2 border border-slate-300 rounded-md text-sm">Limpiar</a>
+            @endif
+        </form>
+
+        @if (request()->filled('search'))
+            <p class="mb-3 text-sm text-slate-500">Resultados para «{{ request('search') }}»: {{ $students->total() }}.</p>
+        @endif
+
         <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -29,7 +43,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-slate-500">Todavía no hay alumnos registrados.</td>
+                            <td colspan="4" class="px-4 py-6 text-center text-slate-500">{{ request()->filled('search') ? 'No se encontraron alumnos con ese criterio.' : 'Todavía no hay alumnos registrados.' }}</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
         $needed = [
             'ViewAny:ProjectIdea', 'View:ProjectIdea', 'Create:ProjectIdea', 'Update:ProjectIdea', 'Delete:ProjectIdea',
             'ViewAny:Assignment', 'View:Assignment', 'Create:Assignment', 'Update:Assignment', 'Delete:Assignment',
+            'ViewAny:ProjectUpdate', 'View:ProjectUpdate', 'Create:ProjectUpdate', 'Update:ProjectUpdate', 'Delete:ProjectUpdate',
             'ViewAny:Attachment', 'View:Attachment', 'Create:Attachment', 'Update:Attachment', 'Delete:Attachment',
             // Permisos de gestión de roles (Filament Shield).
             'ViewAny:Role', 'View:Role', 'Create:Role', 'Update:Role', 'Delete:Role',
@@ -57,6 +58,8 @@ class DatabaseSeeder extends Seeder
             'View:Assignment',
             'Create:Assignment',
             'Delete:Assignment',
+            'View:ProjectUpdate',
+            'Create:ProjectUpdate',
             'ViewAny:Attachment',
             'View:Attachment',
         ]);
@@ -75,6 +78,7 @@ class DatabaseSeeder extends Seeder
             'ViewAny:Assignment',
             'View:Assignment',
             'Update:Assignment',
+            'View:ProjectUpdate',
         ]);
 
         // PROFESOR: ve ideas/adjuntos y puede actualizar postulaciones.
@@ -84,6 +88,9 @@ class DatabaseSeeder extends Seeder
             'ViewAny:Assignment',
             'View:Assignment',
             'Update:Assignment',
+            'ViewAny:ProjectUpdate',
+            'View:ProjectUpdate',
+            'Update:ProjectUpdate',
             'ViewAny:Attachment',
             'View:Attachment',
         ]);
