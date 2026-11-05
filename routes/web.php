@@ -8,6 +8,7 @@ use App\Http\Controllers\ProjectUpdateController;
 use App\Http\Controllers\StudentController;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\ProjectUpdate;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +21,11 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     $ideas = null;
     $stats = null;
+    $projectStatuses = collect();
+    $pendingApplications = collect();
+    $pendingUpdates = collect();
+    $pendingApplicationsCount = 0;
+    $pendingUpdatesCount = 0;
 
     if (auth()->user()->hasRole('student')) {
         $ideas = ProjectIdea::query()
@@ -37,9 +43,62 @@ Route::get('/dashboard', function () {
             'ideas' => ProjectIdea::count(),
             'available' => ProjectIdea::where('status', 'available')->count(),
         ];
+
+        $projectStatuses = collect([
+            [
+                'key' => 'pending',
+                'label' => 'Pendientes de aprobación',
+                'value' => ProjectIdea::whereIn('status', ['available', 'pendiente'])->count(),
+                'color' => '#d97706',
+            ],
+            [
+                'key' => 'in_development',
+                'label' => 'En desarrollo',
+                'value' => ProjectIdea::where('status', 'in_development')->count(),
+                'color' => '#2563eb',
+            ],
+            [
+                'key' => 'completed',
+                'label' => 'Finalizados',
+                'value' => ProjectIdea::where('status', 'completed')->count(),
+                'color' => '#059669',
+            ],
+            [
+                'key' => 'cancelled',
+                'label' => 'Cancelados',
+                'value' => ProjectIdea::where('status', 'cancelled')->count(),
+                'color' => '#64748b',
+            ],
+        ]);
+
+        $pendingApplications = Assignment::query()
+            ->with(['student', 'projectIdea'])
+            ->where('status', 'applied')
+            ->latest('applied_at')
+            ->take(5)
+            ->get();
+
+        $pendingApplicationsCount = Assignment::where('status', 'applied')->count();
+
+        $pendingUpdates = ProjectUpdate::query()
+            ->with(['student', 'projectIdea'])
+            ->where('status', ProjectUpdate::STATUS_PENDING)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $pendingUpdatesCount = ProjectUpdate::where('status', ProjectUpdate::STATUS_PENDING)->count();
     }
 
-    return view('dashboard', compact('ideas', 'stats'));
+    return view('dashboard', compact(
+        'ideas',
+        'stats',
+        'projectStatuses',
+        'pendingApplications',
+        'pendingUpdates',
+        'pendingApplicationsCount',
+        'pendingUpdatesCount',
+    ));
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 // Crear idea: solo usuarios autenticados con permiso (beneficiario/admin)
@@ -67,6 +126,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     // STUDENT (+admin): postularse / retirar
     Route::post('/ideas/{projectIdea}/apply', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::patch('/assignments/{assignment}/estado', [AssignmentController::class, 'updateStatus'])->name('assignments.status.update');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
     // AVANCES: el alumno postulado envía avances y el profesor los aprueba
     Route::post('/assignments/{assignment}/avances', [ProjectUpdateController::class, 'store'])->name('progress.store');

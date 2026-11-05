@@ -52,7 +52,15 @@ class AssignmentPolicy
             return false;
         }
 
-        return method_exists($authUser, 'hasRole') && ($authUser->hasRole('admin') || $assignment->projectIdea?->organizer_id === $authUser->id);
+        if (! method_exists($authUser, 'hasRole')) {
+            return false;
+        }
+
+        if ($authUser->hasAnyRole(['admin', 'profesor'])) {
+            return true;
+        }
+
+        return $assignment->projectIdea?->organizer_id === $authUser->id;
     }
 
     public function delete(AuthUser $authUser, Assignment $assignment): bool

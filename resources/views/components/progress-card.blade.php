@@ -9,7 +9,7 @@
     $approved = $update->isApproved();
 @endphp
 
-<article class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+<article id="avance-{{ $update->id }}" class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
     <header class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
             @if ($showStudent && $update->student)
