@@ -52,6 +52,7 @@ beforeEach(function () {
     $this->idea = ProjectIdea::factory()->create([
         'organizer_id' => $this->beneficiary->id,
         'title' => 'Sistema de biblioteca escolar',
+        'status' => 'in_development',
     ]);
 
     $this->student = User::factory()->create(['name' => 'Camila Rojas']);
@@ -213,4 +214,43 @@ test('un alumno de una postulacion rechazada no puede enviar avances', function 
     $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
         'description' => 'Intento enviar un avance.',
     ])->assertForbidden();
+});
+
+test('un alumno con postulacion solo aplicada no puede enviar avances', function () {
+    $this->assignment->update(['status' => 'applied']);
+
+    $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
+        'description' => 'Intento enviar un avance antes de ser aceptado.',
+    ])->assertForbidden();
+
+    expect(ProjectUpdate::count())->toBe(0);
+});
+
+test('no se pueden enviar avances si el proyecto no esta en desarrollo', function (string $status) {
+    $this->idea->update(['status' => $status]);
+
+    $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
+        'description' => 'Intento enviar un avance de un proyecto cerrado.',
+    ])->assertForbidden();
+
+    expect(ProjectUpdate::count())->toBe(0);
+})->with(['available', 'completed', 'cancelled']);
+
+test('una postulacion completada no puede enviar avances', function () {
+    $this->assignment->update(['status' => 'completed']);
+
+    $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
+        'description' => 'Intento enviar un avance de una postulación completada.',
+    ])->assertForbidden();
+
+    expect(ProjectUpdate::count())->toBe(0);
+});
+
+test('la idea no muestra el formulario de avances si la postulacion no fue aceptada', function () {
+    $this->assignment->update(['status' => 'applied']);
+
+    $this->actingAs($this->student)->get("/ideas/{$this->idea->id}")
+        ->assertOk()
+        ->assertDontSee('Agregar avance')
+        ->assertSee('Podrás subir avances cuando el profesor acepte tu postulación.');
 });

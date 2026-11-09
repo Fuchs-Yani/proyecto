@@ -1,8 +1,14 @@
-@props(['segments' => []])
+@props([
+    'segments' => [],
+    'centerLabel' => 'proyectos',
+    'ariaLabel' => null,
+])
 
 @php
     $segments = collect($segments);
     $total = (int) $segments->sum('value');
+    $description = $segments->map(fn ($segment) => $segment['value'].' '.$segment['label'])->implode(', ');
+    $ariaLabel = $ariaLabel ?? 'Distribución de '.$centerLabel.': '.$description;
     $radius = 70;
     $circumference = 2 * M_PI * $radius;
     $dashOffset = 0.0;
@@ -11,7 +17,7 @@
 <div {{ $attributes->merge(['class' => 'flex flex-col items-center gap-6 sm:flex-row']) }}>
     <div class="relative h-44 w-44 shrink-0">
         <svg viewBox="0 0 200 200" class="h-44 w-44 -rotate-90" role="img"
-            aria-label="Distribución de proyectos: {{ $segments->map(fn ($segment) => $segment['value'].' '.$segment['label'])->implode(', ') }}">
+            aria-label="{{ $ariaLabel }}">
             <circle cx="100" cy="100" r="{{ $radius }}" fill="none" stroke="#e2e8f0" stroke-width="26" />
 
             @if ($total > 0)
@@ -35,7 +41,7 @@
 
         <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-2xl font-bold text-slate-900">{{ $total }}</span>
-            <span class="text-xs text-slate-500">proyectos</span>
+            <span class="text-xs text-slate-500">{{ $centerLabel }}</span>
         </div>
     </div>
 

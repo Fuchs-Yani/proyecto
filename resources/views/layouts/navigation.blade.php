@@ -28,6 +28,7 @@
             </div>
             <div class="hidden sm:flex items-center gap-3">
                 @auth
+                    <x-notification-bell class="p-2" />
                     <span class="text-xs bg-slate-100 border border-slate-200 rounded px-2 py-1">{{ auth()->user()->roleLabel() }}</span>
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
@@ -61,6 +62,12 @@
             {{ auth()->check() ? 'Ideas' : 'Proyectos terminados' }}
         </x-responsive-nav-link>
         @auth
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                Notificaciones
+                @if (auth()->user()->unreadNotifications()->count() > 0)
+                    ({{ auth()->user()->unreadNotifications()->count() }})
+                @endif
+            </x-responsive-nav-link>
             @role('beneficiario')
             <x-responsive-nav-link :href="route('ideas.mine')" :active="request()->routeIs('ideas.mine')">Mis ideas</x-responsive-nav-link>
             @endrole

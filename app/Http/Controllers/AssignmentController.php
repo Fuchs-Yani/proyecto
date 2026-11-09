@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Notifications\ApplicationReviewed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,7 @@ class AssignmentController extends Controller
         $user = auth()->user();
 
         $status = $request->query('status');
-        $status = in_array($status, ['applied', 'accepted', 'rejected', 'in_progress', 'completed'], true)
+        $status = in_array($status, ['applied', 'accepted', 'rejected', 'in_progress', 'completed', 'withdrawn'], true)
             ? $status
             : null;
 
@@ -47,6 +48,11 @@ class AssignmentController extends Controller
     public function store(StoreAssignmentRequest $request, ProjectIdea $projectIdea)
     {
         $this->authorize('create', Assignment::class);
+
+        // Hasta que el profesor analice la idea y defina el cupo no se puede postular.
+        if ($projectIdea->isPendingReview()) {
+            return back()->with('status', 'El profesor todavía no definió el cupo para esta idea.');
+        }
 
         // Una idea cancelada (o ya cerrada) no acepta nuevas postulaciones.
         if (! $projectIdea->isOpenForApplications()) {
@@ -89,7 +95,7 @@ class AssignmentController extends Controller
     // PATCH /assignments/{assignment}/estado - el profesor acepta o rechaza
     public function updateStatus(Request $request, Assignment $assignment)
     {
-        $this->authorize('update', $assignment);
+        $this->authorize('review', $assignment);
 
         $data = $request->validate([
             'status' => ['required', 'in:accepted,rejected'],
@@ -102,17 +108,33 @@ class AssignmentController extends Controller
             return back()->with('status', 'Esta postulación ya fue evaluada.');
         }
 
-        $assignment->update(['status' => $data['status']]);
+        if ($data['status'] === 'rejected') {
+            $assignment->reject();
+            $this->notifyStudent($assignment, Assignment::STATUS_REJECTED);
+
+            return back()->with('status', 'Postulación rechazada.');
+        }
+
+        if (! $assignment->accept()) {
+            return back()->with(
+                'status',
+                'No se puede aceptar: el profesor todavía no definió el cupo o ya se completó el cupo de aceptados.',
+            );
+        }
+
+        $this->notifyStudent($assignment, Assignment::STATUS_ACCEPTED);
+
+        $projectIsInDevelopment = $assignment->fresh()?->projectIdea?->status === 'in_development';
 
         return back()->with(
             'status',
-            $data['status'] === 'accepted'
-                ? 'Postulación aceptada.'
-                : 'Postulación rechazada.',
+            $projectIsInDevelopment
+                ? 'Postulación aceptada. El proyecto pasó a desarrollo.'
+                : 'Postulación aceptada.',
         );
     }
 
-    // DELETE /assignments/{assignment} - retirar postulación
+    // DELETE /assignments/{assignment} - retirar postulación pendiente
     public function destroy(Assignment $assignment)
     {
         $this->authorize('delete', $assignment);
@@ -125,5 +147,27 @@ class AssignmentController extends Controller
         $assignment->delete();
 
         return back()->with('status', 'Postulación eliminada.');
+    }
+
+    // PATCH /assignments/{assignment}/abandonar - abandonar un proyecto aceptado
+    public function withdraw(Assignment $assignment)
+    {
+        $this->authorize('withdraw', $assignment);
+
+        if (! $assignment->withdraw()) {
+            return back()->with('status', 'No se puede abandonar esta postulación.');
+        }
+
+        return back()->with('status', 'Abandonaste el proyecto. Se liberó tu cupo.');
+    }
+
+    /**
+     * Avisa al alumno que su postulación fue aceptada o rechazada.
+     */
+    private function notifyStudent(Assignment $assignment, string $status): void
+    {
+        $assignment->loadMissing('projectIdea');
+
+        $assignment->student?->notify(new ApplicationReviewed($assignment, $status));
     }
 }

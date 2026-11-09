@@ -40,17 +40,40 @@ test('al publicar una idea se guardan sus etiquetas', function () {
     $this->assertDatabaseHas('tags', ['name' => 'educación']);
 });
 
-test('como maximo se guardan tres etiquetas por idea', function () {
+test('se pueden guardar tres etiquetas por idea', function () {
+    $this->actingAs($this->beneficiario)->post('/ideas', [
+        'title' => 'Idea con tres etiquetas',
+        'description' => 'Prueba del límite.',
+        'tags' => 'uno, dos, tres',
+    ])->assertRedirect();
+
+    $idea = ProjectIdea::where('title', 'Idea con tres etiquetas')->firstOrFail();
+
+    expect($idea->tags)->toHaveCount(ProjectIdea::MAX_TAGS)
+        ->and($idea->tags->pluck('name')->all())->toEqualCanonicalizing(['uno', 'dos', 'tres']);
+});
+
+test('no se pueden guardar mas de tres etiquetas por idea', function () {
     $this->actingAs($this->beneficiario)->post('/ideas', [
         'title' => 'Idea con muchas etiquetas',
         'description' => 'Prueba del límite.',
         'tags' => 'uno, dos, tres, cuatro, cinco',
-    ])->assertRedirect();
+    ])->assertSessionHasErrors('tags');
 
-    $idea = ProjectIdea::where('title', 'Idea con muchas etiquetas')->firstOrFail();
+    expect(ProjectIdea::where('title', 'Idea con muchas etiquetas')->exists())->toBeFalse()
+        ->and(Tag::count())->toBe(0);
+});
 
-    expect($idea->tags)->toHaveCount(ProjectIdea::MAX_TAGS)
-        ->and($idea->tags->pluck('name')->all())->toEqualCanonicalizing(['uno', 'dos', 'tres']);
+test('actualizar etiquetas rechaza mas de tres sin crear etiquetas nuevas', function () {
+    $idea = ProjectIdea::factory()->create(['organizer_id' => $this->beneficiario->id]);
+    $idea->tags()->attach(Tag::create(['name' => 'vieja']));
+
+    $this->actingAs($this->beneficiario)
+        ->patch("/ideas/{$idea->id}/etiquetas", ['tags' => 'uno, dos, tres, cuatro'])
+        ->assertSessionHasErrors('tags');
+
+    expect($idea->fresh()->tags->pluck('name')->all())->toEqualCanonicalizing(['vieja'])
+        ->and(Tag::whereIn('name', ['uno', 'dos', 'tres', 'cuatro'])->exists())->toBeFalse();
 });
 
 test('buscar una etiqueta exacta muestra solo las ideas con esa etiqueta', function () {

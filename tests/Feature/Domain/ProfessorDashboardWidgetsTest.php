@@ -36,6 +36,7 @@ beforeEach(function () {
         'organizer_id' => $this->beneficiary->id,
         'title' => 'Proyecto de prueba del panel',
         'status' => 'available',
+        'max_students' => 2,
     ]);
 });
 
@@ -58,11 +59,59 @@ test('el dashboard del profesor muestra el grafico de estados de los proyectos',
     $this->actingAs($this->professor)->get('/dashboard')
         ->assertOk()
         ->assertSee('Estado de los proyectos')
-        ->assertSee('Pendientes de aprobación')
+        ->assertSee('Disponibles / sin iniciar')
         ->assertSee('En desarrollo')
         ->assertSee('Finalizados')
-        ->assertSee('Distribución de proyectos: 2 Pendientes de aprobación, 1 En desarrollo, 1 Finalizados, 0 Cancelados')
+        ->assertSee('Distribución de proyectos: 2 Disponibles / sin iniciar, 1 En desarrollo, 1 Finalizados, 0 Cancelados')
         ->assertSee('50%');
+});
+
+test('el dashboard del profesor muestra el grafico con el estado de postulacion de los alumnos', function () {
+    $sinPostularse = User::factory()->create();
+    $sinPostularse->assignRole('student');
+
+    $pendiente = User::factory()->create();
+    $pendiente->assignRole('student');
+    Assignment::factory()->create([
+        'project_idea_id' => $this->idea->id,
+        'student_id' => $pendiente->id,
+        'status' => 'applied',
+    ]);
+
+    $aceptado = User::factory()->create();
+    $aceptado->assignRole('student');
+    Assignment::factory()->create([
+        'project_idea_id' => $this->idea->id,
+        'student_id' => $aceptado->id,
+        'status' => 'accepted',
+    ]);
+
+    $finalizado = User::factory()->create();
+    $finalizado->assignRole('student');
+    Assignment::factory()->create([
+        'project_idea_id' => $this->idea->id,
+        'student_id' => $finalizado->id,
+        'status' => 'completed',
+    ]);
+
+    $rechazado = User::factory()->create();
+    $rechazado->assignRole('student');
+    Assignment::factory()->create([
+        'project_idea_id' => $this->idea->id,
+        'student_id' => $rechazado->id,
+        'status' => 'rejected',
+    ]);
+
+    $this->actingAs($this->professor)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Estado de los alumnos')
+        ->assertSee('4 de 5 alumnos ya se postularon')
+        ->assertSee('Sin postularse')
+        ->assertSee('Esperando aprobación')
+        ->assertSee('Aceptados / en curso')
+        ->assertSee('Finalizados')
+        ->assertSee('Rechazados / retirados')
+        ->assertSee('Distribución de alumnos: 1 Sin postularse, 1 Esperando aprobación, 1 Aceptados / en curso, 1 Finalizados, 1 Rechazados / retirados');
 });
 
 test('el dashboard del profesor lista las postulaciones por evaluar', function () {

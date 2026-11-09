@@ -58,6 +58,14 @@ class ProjectUpdatePolicy
             && $authUser->hasAnyRole(['admin', 'profesor']);
     }
 
+    /**
+     * Solo el profesor (o un administrador) puede rechazar avances.
+     */
+    public function reject(AuthUser $authUser, ProjectUpdate $projectUpdate): bool
+    {
+        return $this->approve($authUser, $projectUpdate);
+    }
+
     public function delete(AuthUser $authUser, ProjectUpdate $projectUpdate): bool
     {
         if (! $authUser->can('Delete:ProjectUpdate')) {

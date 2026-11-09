@@ -6,7 +6,7 @@
         <x-flash-toast />
 
         @php
-            $statusLabels = ['applied' => 'Postulados', 'accepted' => 'Aceptados', 'rejected' => 'Rechazados', 'in_progress' => 'En progreso', 'completed' => 'Completados'];
+            $statusLabels = ['applied' => 'Postulados', 'accepted' => 'Aceptados', 'rejected' => 'Rechazados', 'in_progress' => 'En progreso', 'completed' => 'Completados', 'withdrawn' => 'Abandonados'];
         @endphp
 
         <form method="GET" action="{{ route('assignments.index') }}" class="flex flex-wrap items-center gap-2">
@@ -39,12 +39,12 @@
                     <span>
                         <a href="{{ route('ideas.show', $a->projectIdea) }}" class="font-bold text-slate-900">{{ $a->projectIdea->title ?? '-' }}</a>
                         @role('beneficiario|admin|profesor') · {{ $a->student->name ?? '' }} @endrole
-                        · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado'][$a->status] ?? $a->status }}
+                        · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado', 'withdrawn' => 'Abandonado'][$a->status] ?? $a->status }}
                     </span>
                     <span class="flex flex-wrap items-center gap-2">
                         @hasanyrole('profesor|admin')
                             @if ($a->status === 'applied')
-                                @can('update', $a)
+                                @can('review', $a)
                                     <form method="POST" action="{{ route('assignments.status.update', $a) }}">
                                         @csrf
                                         @method('PATCH')
@@ -63,6 +63,14 @@
                         @can('delete', $a)
                             <form method="POST" action="{{ route('assignments.destroy', $a) }}">@csrf @method('DELETE')<button class="text-red-700">Eliminar</button></form>
                         @endcan
+                        @can('withdraw', $a)
+                            <form method="POST" action="{{ route('assignments.withdraw', $a) }}"
+                                onsubmit="return confirm('¿Abandonar este proyecto? Se liberará tu cupo.');">
+                                @csrf
+                                @method('PATCH')
+                                <button class="text-red-700">Abandonar proyecto</button>
+                            </form>
+                        @endcan
                     </span>
                 </div>
 
@@ -76,10 +84,18 @@
                         </div>
                     @endif
 
-                    @if ($a->status !== 'rejected')
+                    @if ($a->canReceiveUpdates())
                         <div class="border-t border-slate-100 pt-3">
                             <x-progress-form :assignment="$a" />
                         </div>
+                    @elseif (in_array($a->status, ['accepted', 'in_progress'], true))
+                        <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                            Los avances se habilitan cuando el proyecto está en desarrollo.
+                        </p>
+                    @elseif ($a->status === 'applied')
+                        <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                            Podrás subir avances cuando el profesor acepte tu postulación.
+                        </p>
                     @endif
                 @endrole
             </div>

@@ -27,7 +27,7 @@
                 <x-input-label for="tags" :value="__('Etiquetas (opcional)')" />
                 <x-text-input id="tags" name="tags" type="text" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900"
                     :value="old('tags')" spellcheck="false" placeholder="Ej. educación, gestión, web" />
-                <p class="text-xs text-slate-500 mt-2">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}. Sirven para que otros encuentren tu idea.</p>
+                <p class="text-xs text-slate-500 mt-2">Creá hasta {{ \App\Models\ProjectIdea::MAX_TAGS }} etiquetas para tu idea. Separá las etiquetas con comas; sirven para que otros la encuentren.</p>
                 <x-input-error :messages="$errors->get('tags')" class="mt-2" />
             </div>
 

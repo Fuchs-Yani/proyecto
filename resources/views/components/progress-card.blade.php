@@ -7,6 +7,7 @@
 
 @php
     $approved = $update->isApproved();
+    $rejected = $update->isRejected();
 @endphp
 
 <article id="avance-{{ $update->id }}" class="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
@@ -22,8 +23,8 @@
             </time>
         </div>
 
-        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $approved ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">
-            {{ $approved ? 'Aprobado' : 'Pendiente' }}
+        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $approved ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($rejected ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700') }}">
+            {{ $approved ? 'Aprobado' : ($rejected ? 'Rechazado' : 'Pendiente') }}
         </span>
     </header>
 
@@ -51,18 +52,32 @@
     @endif
 
     @if ($showApprove && $update->isPending())
-        <form method="POST" action="{{ route('progress.approve', $update) }}" class="pt-1">
-            @csrf
-            @method('PATCH')
-            <button class="rounded-md bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
-                Aprobar avance
-            </button>
-        </form>
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+            <form method="POST" action="{{ route('progress.approve', $update) }}">
+                @csrf
+                @method('PATCH')
+                <button class="rounded-md bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
+                    Aprobar avance
+                </button>
+            </form>
+            <form method="POST" action="{{ route('progress.reject', $update) }}"
+                onsubmit="return confirm('¿Rechazar este avance? El alumno podrá enviar uno nuevo.');">
+                @csrf
+                @method('PATCH')
+                <button class="rounded-md border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50">
+                    Rechazar avance
+                </button>
+            </form>
+        </div>
     @endif
 
     @if ($approved && $update->approved_at)
         <p class="text-xs text-slate-500">
             Aprobado el {{ $update->approved_at->format('d/m/Y H:i') }}@if ($update->approver) por {{ $update->approver->name }}@endif.
+        </p>
+    @elseif ($rejected)
+        <p class="text-xs text-slate-500">
+            Rechazado el {{ $update->updated_at?->format('d/m/Y H:i') }}. Podés enviar un nuevo avance.
         </p>
     @endif
 </article>

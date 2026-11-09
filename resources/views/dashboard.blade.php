@@ -1,21 +1,13 @@
 <x-app-layout>
-    <x-slot name="header">
-        @if (auth()->user()->hasAnyRole(['student', 'profesor']))
-            <h2 class="text-xl font-bold text-slate-900">Panel</h2>
-        @elseif (auth()->user()->hasRole('beneficiario'))
-            <div class="flex items-center justify-between gap-4">
+    @unless (auth()->user()->hasRole('beneficiario'))
+        <x-slot name="header">
+            @if (auth()->user()->hasAnyRole(['student', 'profesor']))
                 <h2 class="text-xl font-bold text-slate-900">Panel</h2>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('ideas.mine') }}" class="px-4 py-2 border border-slate-300 rounded-md text-sm whitespace-nowrap">Mis ideas</a>
-                    @can('create', App\Models\ProjectIdea::class)
-                        <a href="{{ route('ideas.create') }}" class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm whitespace-nowrap">Nueva idea</a>
-                    @endcan
-                </div>
-            </div>
-        @else
-            <h2 class="text-xl font-bold text-slate-900">Panel · {{ auth()->user()->roleLabel() }}</h2>
-        @endif
-    </x-slot>
+            @else
+                <h2 class="text-xl font-bold text-slate-900">Panel · {{ auth()->user()->roleLabel() }}</h2>
+            @endif
+        </x-slot>
+    @endunless
 
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
         @if (auth()->user()->hasRole('student'))
@@ -40,9 +32,6 @@
                         <p class="text-sm text-slate-500">Distribución global según la etapa de cada proyecto.</p>
                     </div>
                     <x-project-status-chart :segments="$projectStatuses" />
-                    <p class="mt-4 text-xs text-slate-500">
-                        «Pendientes de aprobación» incluye las ideas publicadas que todavía no iniciaron su desarrollo.
-                    </p>
                 </section>
 
                 <section class="rounded-lg border border-slate-200 bg-white p-4">
@@ -84,6 +73,22 @@
                     <p class="text-2xl font-bold text-slate-900">{{ $stats['available'] }}</p>
                 </a>
             </div>
+
+            <section class="rounded-lg border border-slate-200 bg-white p-4">
+                <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Estado de los alumnos</h3>
+                        <p class="text-sm text-slate-500">
+                            Cuántos alumnos se postularon y en qué situación está su postulación.
+                        </p>
+                    </div>
+                    <p class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
+                        {{ $studentSummary['applied'] }} de {{ $studentSummary['total'] }} alumnos ya se postularon
+                    </p>
+                </div>
+
+                <x-project-status-chart :segments="$studentStatuses" center-label="alumnos" />
+            </section>
 
             <section class="rounded-lg border border-slate-200 bg-white">
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
@@ -181,6 +186,14 @@
                                                     <button class="rounded-md bg-slate-900 px-3 py-1.5 text-white hover:bg-slate-800">Aprobar</button>
                                                 </form>
                                             @endcan
+                                            @can('reject', $update)
+                                                <form method="POST" action="{{ route('progress.reject', $update) }}"
+                                                    onsubmit="return confirm('¿Rechazar este avance? El alumno podrá enviar uno nuevo.');">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button class="rounded-md border border-red-300 px-3 py-1.5 text-red-700 hover:bg-red-50">Rechazar</button>
+                                                </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -220,7 +233,7 @@
             <div class="bg-white border border-slate-200 rounded-lg p-4 text-sm">
                 <b>Qué ve cada rol:</b>
                 <ul class="list-disc ml-5 text-slate-600">
-                    <li><b>Estudiante:</b> ideas disponibles, postularse/retirar, descargar adjuntos.</li>
+                    <li><b>Estudiante:</b> ideas disponibles, postularse/retirar/abandonar proyectos, descargar adjuntos.</li>
                     <li><b>Beneficiario:</b> ideas, postulaciones de sus ideas, subir/borrar adjuntos propios.</li>
                     <li><b>Profesor:</b> ideas, adjuntos y seguimiento de postulaciones.</li>
                     <li><b>Administrador:</b> todo + panel de administración.</li>

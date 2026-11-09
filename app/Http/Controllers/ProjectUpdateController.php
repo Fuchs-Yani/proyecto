@@ -6,6 +6,7 @@ use App\Http\Requests\StoreProjectUpdateRequest;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
 use App\Models\ProjectUpdate;
+use App\Notifications\ProjectUpdateReviewed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,9 +49,9 @@ class ProjectUpdateController extends Controller
         );
 
         abort_if(
-            $assignment->status === 'rejected',
+            ! $assignment->canReceiveUpdates(),
             403,
-            'No podés enviar avances de una postulación rechazada.',
+            'Solo podés enviar avances cuando el profesor aceptó tu postulación y el proyecto está en desarrollo.',
         );
 
         $data = $request->validated();
@@ -104,6 +105,38 @@ class ProjectUpdateController extends Controller
             'approved_by' => auth()->id(),
         ]);
 
+        $this->notifyStudent($projectUpdate, ProjectUpdate::STATUS_APPROVED);
+
         return back()->with('status', 'Avance aprobado. El beneficiario ya puede verlo.');
+    }
+
+    // PATCH /avances/{projectUpdate}/rechazar - el profesor rechaza el avance
+    public function reject(ProjectUpdate $projectUpdate): RedirectResponse
+    {
+        $this->authorize('reject', $projectUpdate);
+
+        if (! $projectUpdate->isPending()) {
+            return back()->with('status', 'Este avance ya fue evaluado.');
+        }
+
+        $projectUpdate->update([
+            'status' => ProjectUpdate::STATUS_REJECTED,
+            'approved_at' => null,
+            'approved_by' => null,
+        ]);
+
+        $this->notifyStudent($projectUpdate, ProjectUpdate::STATUS_REJECTED);
+
+        return back()->with('status', 'Avance rechazado. El alumno fue notificado.');
+    }
+
+    /**
+     * Avisa al alumno que su avance fue aprobado o rechazado.
+     */
+    private function notifyStudent(ProjectUpdate $projectUpdate, string $status): void
+    {
+        $projectUpdate->loadMissing('projectIdea');
+
+        $projectUpdate->student?->notify(new ProjectUpdateReviewed($projectUpdate, $status));
     }
 }

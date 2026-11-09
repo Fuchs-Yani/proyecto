@@ -1,12 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-xl font-bold text-slate-900">{{ $projectIdea->title }}</h2>
-        <p class="text-sm text-slate-500">Estado: {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado', 'pendiente' => 'Pendiente'][$projectIdea->status] ?? $projectIdea->status }} · Beneficiario: {{ $projectIdea->organizer->name ?? '' }}</p>
+        <p class="text-sm text-slate-500">Estado: {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado'][$projectIdea->status] ?? $projectIdea->status }} · Beneficiario: {{ $projectIdea->organizer->name ?? '' }}</p>
         @if ($projectIdea->max_students !== null)
             <p class="text-sm text-slate-500">
                 Cupo de postulantes: {{ $projectIdea->activeAssignmentsCount() }} / {{ $projectIdea->max_students }}
                 @if (! $projectIdea->hasAvailableSlots()) · Cupo completo @endif
             </p>
+        @elseif ($projectIdea->isPendingReview())
+            <p class="text-sm text-slate-500">⏳ Pendiente de revisión del profesor.</p>
         @endif
     </x-slot>
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
@@ -14,6 +16,15 @@
         @if ($errors->any())<div class="bg-white border border-red-300 rounded-lg p-3 text-sm text-red-700">{{ $errors->first() }}</div>@endif
 
         <div class="bg-white border border-slate-200 rounded-lg p-4"><p class="text-sm">{{ $projectIdea->description }}</p></div>
+
+        @if ($projectIdea->status === 'cancelled' && $projectIdea->cancellation_reason)
+            <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-1">
+                <p class="text-sm text-slate-700"><span class="font-semibold">Motivo de cancelación:</span> {{ $projectIdea->cancellation_reason }}</p>
+                @if ($projectIdea->cancelled_at)
+                    <p class="text-xs text-slate-500">Cancelada el {{ $projectIdea->cancelled_at->format('d/m/Y H:i') }}</p>
+                @endif
+            </div>
+        @endif
 
         @php
             $viewer = auth()->user();
@@ -153,7 +164,7 @@
                             class="w-full sm:w-80 rounded-md border border-slate-300 p-2 text-sm" />
                         <button class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Guardar etiquetas</button>
                     </form>
-                    <p class="text-xs text-slate-500">Separá las etiquetas con comas. Máximo {{ \App\Models\ProjectIdea::MAX_TAGS }}.</p>
+                    <p class="text-xs text-slate-500">Creá hasta {{ \App\Models\ProjectIdea::MAX_TAGS }} etiquetas para tu idea. Separá las etiquetas con comas.</p>
                     @error('tags')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -196,24 +207,53 @@
 
         @can('delete', $projectIdea)
             <form method="POST" action="{{ route('ideas.destroy', $projectIdea) }}"
-                onsubmit="return confirm('¿Eliminar esta idea? También se borrarán sus archivos y postulaciones.');">
+                onsubmit="return confirm('¿Eliminar esta idea? Solo se puede eliminar mientras no tenga postulaciones.');">
                 @csrf
                 @method('DELETE')
                 <button class="px-4 py-2 border border-red-300 text-red-700 rounded-md text-sm">Eliminar idea</button>
             </form>
+        @elsecan('cancel', $projectIdea)
+            <div class="bg-white border border-amber-200 rounded-lg p-4 space-y-2">
+                <h3 class="font-bold text-slate-900 text-sm">Cancelar idea</h3>
+                <p class="text-sm text-slate-600">
+                    Esta idea ya tiene postulaciones o trabajo asociado, por lo que no se puede eliminar.
+                    Si necesitás detenerla, cancelala indicando un motivo. Se conservarán las postulaciones y los avances.
+                </p>
+                <form method="POST" action="{{ route('ideas.cancel', $projectIdea) }}" class="space-y-2"
+                    onsubmit="return confirm('¿Cancelar esta idea? Las postulaciones pendientes serán rechazadas.');">
+                    @csrf
+                    @method('PATCH')
+                    <label for="cancellation_reason" class="block text-xs font-semibold text-slate-600">Motivo de la cancelación</label>
+                    <textarea id="cancellation_reason" name="cancellation_reason" rows="3" required maxlength="1000"
+                        class="block w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm">{{ old('cancellation_reason') }}</textarea>
+                    @error('cancellation_reason')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                    <button class="px-4 py-2 border border-amber-300 text-amber-800 rounded-md text-sm">Cancelar idea</button>
+                </form>
+            </div>
         @endcan
 
         @role('student')
-            @if (! $projectIdea->isOpenForApplications())
-                <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya no acepta postulaciones.</p>
-            @elseif ($alreadyApplied)
+            @if ($alreadyApplied)
                 @php($mine = $projectIdea->assignments->firstWhere('student_id', auth()->id()))
                 <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-sm">Ya postulado.</p>
+                        <p class="text-sm">
+                            Ya postulado.
+                            @if ($mine)
+                                · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado', 'withdrawn' => 'Abandonado'][$mine->status] ?? $mine->status }}
+                            @endif
+                        </p>
                         @if ($mine)
                             @can('delete', $mine)
                                 <form method="POST" action="{{ route('assignments.destroy', $mine) }}">@csrf @method('DELETE')<button class="px-3 py-1.5 border border-slate-300 rounded-md text-sm text-red-700">Retirar postulación</button></form>
+                            @endcan
+                            @can('withdraw', $mine)
+                                <form method="POST" action="{{ route('assignments.withdraw', $mine) }}"
+                                    onsubmit="return confirm('¿Abandonar este proyecto? Se liberará tu cupo.');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="px-3 py-1.5 border border-red-300 rounded-md text-sm text-red-700">Abandonar proyecto</button>
+                                </form>
                             @endcan
                         @endif
                     </div>
@@ -228,13 +268,25 @@
                             </div>
                         @endif
 
-                        @if ($mine->status !== 'rejected')
+                        @if ($mine->canReceiveUpdates())
                             <div class="border-t border-slate-100 pt-3">
                                 <x-progress-form :assignment="$mine" />
                             </div>
+                        @elseif (in_array($mine->status, ['accepted', 'in_progress'], true))
+                            <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                                Los avances se habilitan cuando el proyecto está en desarrollo.
+                            </p>
+                        @elseif ($mine->status === 'applied')
+                            <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
+                                Podrás subir avances cuando el profesor acepte tu postulación.
+                            </p>
                         @endif
                     @endif
                 </div>
+            @elseif ($projectIdea->isPendingReview())
+                <p class="bg-white border rounded-lg p-3 text-sm">El profesor todavía no definió el cupo para esta idea.</p>
+            @elseif (! $projectIdea->isOpenForApplications())
+                <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya no acepta postulaciones.</p>
             @elseif (! $projectIdea->hasAvailableSlots())
                 <p class="bg-white border rounded-lg p-3 text-sm">Esta idea ya alcanzó el cupo máximo de postulantes.</p>
             @else
@@ -246,13 +298,30 @@
 
         @if (auth()->check() && (auth()->user()->hasAnyRole(['admin', 'profesor']) || $projectIdea->organizer_id === auth()->id()))
             <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <h3 class="font-bold text-slate-900 text-sm">Postulaciones ({{ $projectIdea->assignments->count() }})</h3>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 class="font-bold text-slate-900 text-sm">
+                        Postulaciones ({{ $projectIdea->assignments->count() }})
+                        · Aceptados: {{ $projectIdea->acceptedAssignmentsCount() }}
+                    </h3>
+                    @hasanyrole('profesor|admin')
+                        @if ($projectIdea->status === 'available' && $projectIdea->acceptedAssignmentsCount() > 0)
+                            @can('startDevelopment', $projectIdea)
+                                <form method="POST" action="{{ route('ideas.start', $projectIdea) }}"
+                                    onsubmit="return confirm('¿Iniciar el proyecto con {{ $projectIdea->acceptedAssignmentsCount() }} integrante(s)? Las postulaciones pendientes serán rechazadas.');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button class="px-3 py-1.5 bg-amber-500 text-white rounded-md text-sm hover:bg-amber-600">Iniciar proyecto</button>
+                                </form>
+                            @endcan
+                        @endif
+                    @endhasanyrole
+                </div>
                 @forelse($projectIdea->assignments as $a)
                     <div class="flex justify-between border-b border-slate-100 py-2 text-sm">
                         <span>
                             {{ $a->student->name ?? '' }}
                             @if ($a->student?->email) · {{ $a->student->email }} @endif
-                            · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado'][$a->status] ?? $a->status }}
+                            · {{ ['applied' => 'Postulado', 'accepted' => 'Aceptado', 'rejected' => 'Rechazado', 'in_progress' => 'En progreso', 'completed' => 'Completado', 'withdrawn' => 'Abandonado'][$a->status] ?? $a->status }}
                             · {{ $a->applied_at?->format('d/m/Y') }}
                         </span>
                     </div>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectIdeaController;
 use App\Http\Controllers\ProjectUpdateController;
@@ -22,6 +23,8 @@ Route::get('/dashboard', function () {
     $ideas = null;
     $stats = null;
     $projectStatuses = collect();
+    $studentStatuses = collect();
+    $studentSummary = ['total' => 0, 'applied' => 0];
     $pendingApplications = collect();
     $pendingUpdates = collect();
     $pendingApplicationsCount = 0;
@@ -30,7 +33,7 @@ Route::get('/dashboard', function () {
     if (auth()->user()->hasRole('student')) {
         $ideas = ProjectIdea::query()
             ->with(['organizer', 'attachments', 'tags'])
-            ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->where('status', '!=', 'rejected')])
+            ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->whereNotIn('status', Assignment::INACTIVE_STATUSES)])
             ->where('status', 'available')
             ->latest()
             ->paginate(12);
@@ -44,12 +47,92 @@ Route::get('/dashboard', function () {
             'available' => ProjectIdea::where('status', 'available')->count(),
         ];
 
-        $projectStatuses = collect([
+        $students = User::role('student')
+            ->with(['assignments:id,student_id,status'])
+            ->get();
+
+        $studentGroups = [
+            'not_applied' => 0,
+            'pending' => 0,
+            'accepted' => 0,
+            'completed' => 0,
+            'rejected' => 0,
+        ];
+
+        foreach ($students as $student) {
+            $statuses = $student->assignments->pluck('status');
+
+            if ($statuses->isEmpty()) {
+                $studentGroups['not_applied']++;
+
+                continue;
+            }
+
+            if ($statuses->contains(Assignment::STATUS_COMPLETED)) {
+                $studentGroups['completed']++;
+
+                continue;
+            }
+
+            if ($statuses->contains(fn (string $status): bool => in_array($status, Assignment::ACCEPTED_STATUSES, true))) {
+                $studentGroups['accepted']++;
+
+                continue;
+            }
+
+            if ($statuses->contains(Assignment::STATUS_APPLIED)) {
+                $studentGroups['pending']++;
+
+                continue;
+            }
+
+            $studentGroups['rejected']++;
+        }
+
+        $studentStatuses = collect([
+            [
+                'key' => 'not_applied',
+                'label' => 'Sin postularse',
+                'value' => $studentGroups['not_applied'],
+                'color' => '#94a3b8',
+            ],
             [
                 'key' => 'pending',
-                'label' => 'Pendientes de aprobación',
-                'value' => ProjectIdea::whereIn('status', ['available', 'pendiente'])->count(),
-                'color' => '#d97706',
+                'label' => 'Esperando aprobación',
+                'value' => $studentGroups['pending'],
+                'color' => '#f59e0b',
+            ],
+            [
+                'key' => 'accepted',
+                'label' => 'Aceptados / en curso',
+                'value' => $studentGroups['accepted'],
+                'color' => '#2563eb',
+            ],
+            [
+                'key' => 'completed',
+                'label' => 'Finalizados',
+                'value' => $studentGroups['completed'],
+                'color' => '#059669',
+            ],
+            [
+                'key' => 'rejected',
+                'label' => 'Rechazados / retirados',
+                'value' => $studentGroups['rejected'],
+                'color' => '#dc2626',
+            ],
+        ]);
+
+        $studentSummary = [
+            'total' => $students->count(),
+            'applied' => $students->count() - $studentGroups['not_applied'],
+        ];
+
+        $projectStatuses = collect([
+            [
+                'key' => 'available',
+                'label' => 'Disponibles / sin iniciar',
+                'value' => ProjectIdea::where('status', 'available')->count(),
+                'color' => '#0ea5e9',
             ],
             [
                 'key' => 'in_development',
@@ -94,6 +177,8 @@ Route::get('/dashboard', function () {
         'ideas',
         'stats',
         'projectStatuses',
+        'studentStatuses',
+        'studentSummary',
         'pendingApplications',
         'pendingUpdates',
         'pendingApplicationsCount',
@@ -118,9 +203,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/notificaciones', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notificaciones/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::patch('/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+
     Route::delete('/ideas/{projectIdea}', [ProjectIdeaController::class, 'destroy'])->name('ideas.destroy');
+    Route::patch('/ideas/{projectIdea}/cancelar', [ProjectIdeaController::class, 'cancel'])->name('ideas.cancel');
     Route::patch('/ideas/{projectIdea}', [ProjectIdeaController::class, 'update'])->name('ideas.update');
     Route::patch('/ideas/{projectIdea}/etiquetas', [ProjectIdeaController::class, 'updateTags'])->name('ideas.tags.update');
+    Route::patch('/ideas/{projectIdea}/cupo', [ProjectIdeaController::class, 'updateQuota'])->name('ideas.quota.update');
+    Route::patch('/ideas/{projectIdea}/iniciar', [ProjectIdeaController::class, 'startDevelopment'])->name('ideas.start');
 
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
@@ -128,10 +220,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/ideas/{projectIdea}/apply', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::patch('/assignments/{assignment}/estado', [AssignmentController::class, 'updateStatus'])->name('assignments.status.update');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
+    Route::patch('/assignments/{assignment}/abandonar', [AssignmentController::class, 'withdraw'])->name('assignments.withdraw');
     // AVANCES: el alumno postulado envía avances y el profesor los aprueba
     Route::post('/assignments/{assignment}/avances', [ProjectUpdateController::class, 'store'])->name('progress.store');
     Route::get('/avances', [ProjectUpdateController::class, 'index'])->name('progress.index');
     Route::patch('/avances/{projectUpdate}/aprobar', [ProjectUpdateController::class, 'approve'])->name('progress.approve');
+    Route::patch('/avances/{projectUpdate}/rechazar', [ProjectUpdateController::class, 'reject'])->name('progress.reject');
     // ORGANIZATION (+admin): subir / borrar adjuntos propios
     Route::post('/ideas/{projectIdea}/attachments', [AttachmentController::class, 'store'])->name('attachments.store');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');

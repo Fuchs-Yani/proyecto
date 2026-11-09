@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AttachmentResource\Pages;
 use App\Models\Attachment;
+use App\Models\ProjectIdea;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms;

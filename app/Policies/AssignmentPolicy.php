@@ -63,6 +63,22 @@ class AssignmentPolicy
         return $assignment->projectIdea?->organizer_id === $authUser->id;
     }
 
+    /**
+     * Solo el profesor (o un administrador) puede aceptar o rechazar postulaciones.
+     * El beneficiario, aunque sea dueño de la idea, no evalúa postulantes.
+     */
+    public function review(AuthUser $authUser, Assignment $assignment): bool
+    {
+        return $authUser->can('Update:Assignment')
+            && method_exists($authUser, 'hasRole')
+            && $authUser->hasAnyRole(['admin', 'profesor']);
+    }
+
+    /**
+     * El alumno solo puede borrar su postulación mientras siga pendiente y el
+     * proyecto continúe disponible. Una vez aceptada debe usar "abandonar
+     * proyecto" para conservar el historial y recomputar el cupo.
+     */
     public function delete(AuthUser $authUser, Assignment $assignment): bool
     {
         if (! $authUser->can('Delete:Assignment')) {
@@ -72,7 +88,26 @@ class AssignmentPolicy
             return true;
         }
 
-        return $assignment->student_id === $authUser->id;
+        return $assignment->student_id === $authUser->id
+            && $assignment->status === Assignment::STATUS_APPLIED
+            && $assignment->projectIdea?->status === 'available';
+    }
+
+    /**
+     * Permite al alumno abandonar un proyecto ya aceptado sin borrar la
+     * postulación ni sus avances.
+     */
+    public function withdraw(AuthUser $authUser, Assignment $assignment): bool
+    {
+        if (! $authUser->can('Delete:Assignment')) {
+            return false;
+        }
+        if (method_exists($authUser, 'hasRole') && $authUser->hasRole('admin')) {
+            return true;
+        }
+
+        return $assignment->student_id === $authUser->id
+            && in_array($assignment->status, Assignment::WITHDRAWABLE_STATUSES, true);
     }
 
     public function deleteAny(AuthUser $authUser): bool

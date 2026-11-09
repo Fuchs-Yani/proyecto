@@ -63,7 +63,7 @@ test('el cupo maximo limita la cantidad de postulantes', function () {
     expect(Assignment::where('project_idea_id', $idea->id)->count())->toBe(2);
 });
 
-test('sin cupo definido se puede postular sin limite', function () {
+test('sin cupo definido por el profesor no se puede postular', function () {
     $owner = applicationLimitUser('beneficiario');
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
@@ -71,13 +71,11 @@ test('sin cupo definido se puede postular sin limite', function () {
         'max_students' => null,
     ]);
 
-    foreach (range(1, 3) as $i) {
-        $this->actingAs(applicationLimitUser('student'))
-            ->post("/ideas/{$idea->id}/apply")
-            ->assertSessionHas('status', 'Postulación creada.');
-    }
+    $this->actingAs(applicationLimitUser('student'))
+        ->post("/ideas/{$idea->id}/apply")
+        ->assertSessionHas('status', 'El profesor todavía no definió el cupo para esta idea.');
 
-    expect(Assignment::where('project_idea_id', $idea->id)->count())->toBe(3);
+    expect(Assignment::where('project_idea_id', $idea->id)->count())->toBe(0);
 });
 
 test('una postulacion rechazada libera un cupo', function () {
@@ -85,7 +83,7 @@ test('una postulacion rechazada libera un cupo', function () {
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
         'status' => 'available',
-        'max_students' => 1,
+        'max_students' => 2,
     ]);
 
     $first = assignmentForLimit($idea, applicationLimitUser('student'));
@@ -103,7 +101,7 @@ test('retirar una postulacion libera un cupo', function () {
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
         'status' => 'available',
-        'max_students' => 1,
+        'max_students' => 2,
     ]);
 
     $student = applicationLimitUser('student');
@@ -125,15 +123,16 @@ test('el detalle muestra el cupo y bloquea el boton cuando esta lleno', function
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
         'status' => 'available',
-        'max_students' => 1,
+        'max_students' => 2,
     ]);
 
+    assignmentForLimit($idea, applicationLimitUser('student'));
     assignmentForLimit($idea, applicationLimitUser('student'));
 
     $this->actingAs(applicationLimitUser('student'))
         ->get("/ideas/{$idea->id}")
         ->assertOk()
-        ->assertSee('Cupo de postulantes: 1 / 1')
+        ->assertSee('Cupo de postulantes: 2 / 2')
         ->assertSee('Cupo completo')
         ->assertSee('Esta idea ya alcanzó el cupo máximo de postulantes.')
         ->assertDontSee('Postularme');
@@ -144,11 +143,12 @@ test('el estudiante que ya se postulo ve su estado aunque el cupo este lleno', f
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
         'status' => 'available',
-        'max_students' => 1,
+        'max_students' => 2,
     ]);
 
     $student = applicationLimitUser('student');
     assignmentForLimit($idea, $student);
+    assignmentForLimit($idea, applicationLimitUser('student'));
 
     $this->actingAs($student)
         ->get("/ideas/{$idea->id}")
@@ -162,17 +162,18 @@ test('el listado oculta el boton postularme cuando el cupo esta lleno', function
     $idea = ProjectIdea::factory()->create([
         'organizer_id' => $owner->id,
         'status' => 'available',
-        'max_students' => 1,
+        'max_students' => 2,
         'title' => 'Proyecto con cupo lleno',
     ]);
 
+    assignmentForLimit($idea, applicationLimitUser('student'));
     assignmentForLimit($idea, applicationLimitUser('student'));
 
     $this->actingAs(applicationLimitUser('student'))
         ->get('/ideas')
         ->assertOk()
         ->assertSee('Proyecto con cupo lleno')
-        ->assertSee('1/1 postulantes')
+        ->assertSee('2/2 postulantes')
         ->assertDontSee('Postularme');
 });
 
@@ -183,7 +184,7 @@ test('el administrador puede editar el cupo desde el panel', function () {
     $this->actingAs($admin)
         ->get("/admin/project-ideas/{$idea->id}/edit")
         ->assertOk()
-        ->assertSee('Máximo de postulantes');
+        ->assertSee('Cantidad de alumnos');
 
     $idea->update(['max_students' => 4]);
 

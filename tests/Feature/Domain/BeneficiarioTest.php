@@ -130,15 +130,15 @@ test('el beneficiario ve quienes se postulan solo a sus propias ideas', function
         ->assertDontSee('Alumno Postulante');
 });
 
-test('el dashboard del beneficiario muestra los botones mis ideas y nueva idea', function () {
+test('el dashboard del beneficiario no muestra la barra secundaria de panel', function () {
     $beneficiario = User::factory()->create();
     $beneficiario->assignRole('beneficiario');
 
     $this->actingAs($beneficiario)->get('/dashboard')
         ->assertOk()
-        ->assertSee('Panel')
+        ->assertDontSee('<header', false)
+        ->assertDontSee('Nueva idea')
         ->assertSee('Mis ideas')
-        ->assertSee('Nueva idea')
         ->assertDontSee('Banco de Ideas y Proyectos de Software')
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
         ->assertDontSee('Actualiza tus datos y tu contraseña.')
@@ -208,7 +208,7 @@ test('el boton nueva idea desaparece cuando el beneficiario ya tiene su idea', f
 
     ProjectIdea::factory()->create(['organizer_id' => $beneficiario->id]);
 
-    $this->actingAs($beneficiario)->get('/dashboard')
+    $this->actingAs($beneficiario)->get('/mis-ideas')
         ->assertOk()
         ->assertSee('Mis ideas')
         ->assertDontSee('Nueva idea');

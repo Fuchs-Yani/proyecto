@@ -16,6 +16,8 @@ class ProjectUpdate extends Model
 
     public const STATUS_APPROVED = 'approved';
 
+    public const STATUS_REJECTED = 'rejected';
+
     /**
      * Cantidad máxima de imágenes permitidas por avance.
      */
@@ -86,6 +88,11 @@ class ProjectUpdate extends Model
     public function isApproved(): bool
     {
         return $this->status === self::STATUS_APPROVED;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === self::STATUS_REJECTED;
     }
 
     /**

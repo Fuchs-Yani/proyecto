@@ -35,7 +35,11 @@ test('student can apply once to an idea', function () {
     $org->assignRole('beneficiario');
     $student = User::factory()->create();
     $student->assignRole('student');
-    $idea = ProjectIdea::factory()->create(['organizer_id' => $org->id, 'status' => 'available']);
+    $idea = ProjectIdea::factory()->create([
+        'organizer_id' => $org->id,
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
 
     $this->actingAs($student)->post("/ideas/{$idea->id}/apply")->assertRedirect();
     expect($idea->assignments()->where('student_id', $student->id)->count())->toBe(1);

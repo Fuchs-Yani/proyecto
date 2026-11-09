@@ -65,6 +65,8 @@
         </a>
         @endcan
 
+        <x-notification-bell :show-label="true" class="w-full px-3 py-2.5" />
+
         <a href="{{ route('ideas.index') }}"
             class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition {{ request()->routeIs('ideas.*') ? 'bg-blue-100 font-semibold text-blue-900' : 'text-slate-700 hover:bg-slate-100' }}">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5">

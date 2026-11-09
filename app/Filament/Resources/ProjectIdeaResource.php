@@ -86,12 +86,13 @@ class ProjectIdeaResource extends Resource
                     ->helperText('Elegí hasta '.ProjectIdea::MAX_TAGS.' etiquetas para que la idea sea fácil de encontrar.')
                     ->columnSpanFull(),
                 Forms\Components\TextInput::make('max_students')
-                    ->label('Máximo de postulantes')
+                    ->label('Cantidad de alumnos')
                     ->numeric()
                     ->integer()
-                    ->minValue(1)
+                    ->minValue(ProjectIdea::MIN_STUDENTS)
+                    ->maxValue(ProjectIdea::MAX_STUDENTS)
                     ->nullable()
-                    ->helperText('Dejar vacío para permitir postulaciones sin límite.'),
+                    ->helperText('El profesor define entre '.ProjectIdea::MIN_STUDENTS.' y '.ProjectIdea::MAX_STUDENTS.' alumnos. Mientras esté vacío no se aceptan postulaciones.'),
             ]);
     }
 
@@ -119,7 +120,7 @@ class ProjectIdeaResource extends Resource
                 Tables\Columns\TextColumn::make('applicants')
                     ->label('Postulantes / cupo')
                     ->state(fn (ProjectIdea $record): string => $record->max_students === null
-                        ? $record->activeAssignmentsCount().' / sin límite'
+                        ? $record->activeAssignmentsCount().' / pendiente'
                         : $record->activeAssignmentsCount().' / '.$record->max_students),
                 Tables\Columns\TextColumn::make('created_at')->label('Creada el')->dateTime('d/m/Y H:i')->sortable(),
             ])

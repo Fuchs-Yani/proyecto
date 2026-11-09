@@ -64,7 +64,8 @@ class DatabaseSeeder extends Seeder
             'View:Attachment',
         ]);
 
-        // BENEFICIARIO: gestiona sus ideas/adjuntos y las postulaciones recibidas.
+        // BENEFICIARIO: gestiona sus ideas/adjuntos y solo consulta las postulaciones recibidas.
+        // Aceptar o rechazar postulantes es tarea exclusiva del profesor/admin (AssignmentPolicy::review).
         $beneficiarioRole->syncPermissions([
             'ViewAny:ProjectIdea',
             'View:ProjectIdea',
@@ -77,7 +78,6 @@ class DatabaseSeeder extends Seeder
             'Delete:Attachment',
             'ViewAny:Assignment',
             'View:Assignment',
-            'Update:Assignment',
             'View:ProjectUpdate',
         ]);
 

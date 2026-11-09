@@ -27,6 +27,7 @@ test('el dashboard del estudiante muestra directamente las ideas publicadas', fu
     ProjectIdea::factory()->create([
         'title' => 'Idea publicada para estudiantes',
         'status' => 'available',
+        'max_students' => 2,
     ]);
 
     $this->actingAs($student)->get('/dashboard')

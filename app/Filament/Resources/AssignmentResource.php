@@ -7,6 +7,7 @@ use App\Models\Assignment;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -52,6 +53,7 @@ class AssignmentResource extends Resource
             'in_progress' => ['in_progress', 'completed'],
             'rejected' => ['rejected'],
             'completed' => ['completed'],
+            'withdrawn' => ['withdrawn'],
         ];
 
         return $schema
@@ -82,6 +84,7 @@ class AssignmentResource extends Resource
                             'rejected' => 'Rechazado',
                             'in_progress' => 'En progreso',
                             'completed' => 'Completado',
+                            'withdrawn' => 'Abandonado',
                         ];
                         if (! $record?->exists) {
                             return ['applied' => 'Postulado']; // al crear solo applied
@@ -146,6 +149,7 @@ class AssignmentResource extends Resource
                         'in_progress' => 'En progreso',
                         'completed' => 'Completado',
                         'rejected' => 'Rechazado',
+                        'withdrawn' => 'Abandonado',
                         default => $state,
                     })
                     ->color(fn (?string $state): string => match ($state) {
@@ -154,6 +158,7 @@ class AssignmentResource extends Resource
                         'in_progress' => 'warning',
                         'completed' => 'success',
                         'rejected' => 'danger',
+                        'withdrawn' => 'gray',
                         default => 'gray',
                     }),
 
@@ -171,6 +176,7 @@ class AssignmentResource extends Resource
                         'rejected' => 'Rechazado',
                         'in_progress' => 'En progreso',
                         'completed' => 'Completado',
+                        'withdrawn' => 'Abandonado',
                     ]),
             ])
             ->actions([
@@ -180,19 +186,44 @@ class AssignmentResource extends Resource
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->visible(fn (Assignment $record) => $record->status === 'applied')
-                    ->action(fn (Assignment $record) => $record->update(['status' => 'accepted'])),
+                    ->action(function (Assignment $record): void {
+                        if (! $record->accept()) {
+                            Notification::make()
+                                ->title('No se pudo aceptar')
+                                ->body('El profesor todavía no definió el cupo o el cupo de aceptados ya está completo.')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title('Postulación aceptada')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('reject')
                     ->label('Rechazar')
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->visible(fn (Assignment $record) => in_array($record->status, ['applied', 'accepted'], true))
-                    ->action(fn (Assignment $record) => $record->update(['status' => 'rejected'])),
+                    ->action(function (Assignment $record): void {
+                        $record->reject();
+
+                        Notification::make()
+                            ->title('Postulación rechazada')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('start')
                     ->label('Iniciar')
                     ->icon('heroicon-o-play')
                     ->color('warning')
                     ->visible(fn (Assignment $record) => $record->status === 'accepted')
-                    ->action(fn (Assignment $record) => $record->update(['status' => 'in_progress', 'started_at' => now()])),
+                    ->action(fn (Assignment $record) => $record->update([
+                        'status' => 'in_progress',
+                        'started_at' => $record->started_at ?? now(),
+                    ])),
                 Action::make('complete')
                     ->label('Completar')
                     ->icon('heroicon-o-check-badge')

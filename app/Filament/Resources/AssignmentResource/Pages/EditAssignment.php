@@ -25,6 +25,9 @@ class EditAssignment extends EditRecord
         $original = $this->record->status;
 
         if ($original !== ($data['status'] ?? $original)) {
+            if (($data['status'] ?? null) === 'accepted' && empty($this->record->started_at)) {
+                $data['started_at'] = now();
+            }
             if (($data['status'] ?? null) === 'in_progress' && empty($this->record->started_at)) {
                 $data['started_at'] = now();
             }
@@ -35,5 +38,11 @@ class EditAssignment extends EditRecord
         }
 
         return $data;
+    }
+
+    // Revisa si el proyecto ya puede pasar a "en desarrollo" tras la edición.
+    protected function afterSave(): void
+    {
+        $this->record->projectIdea?->syncDevelopmentStatus();
     }
 }
