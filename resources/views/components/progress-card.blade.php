@@ -23,9 +23,17 @@
             </time>
         </div>
 
-        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $approved ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($rejected ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700') }}">
-            {{ $approved ? 'Aprobado' : ($rejected ? 'Rechazado' : 'Pendiente') }}
-        </span>
+        <div class="flex flex-wrap items-center gap-2">
+            @if ($update->stage)
+                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                    {{ $update->stageLabel() }}
+                </span>
+            @endif
+
+            <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold {{ $approved ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($rejected ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700') }}">
+                {{ $approved ? 'Aprobado' : ($rejected ? 'Rechazado' : 'Pendiente de revisión') }}
+            </span>
+        </div>
     </header>
 
     <p class="whitespace-pre-line text-sm text-slate-700">{{ $update->description }}</p>

@@ -1,7 +1,8 @@
 @props(['assignment'])
 
 @php
-    $hasErrors = $errors->hasAny(['description', 'repository_url', 'images', 'images.*']);
+    $hasErrors = $errors->hasAny(['stage', 'description', 'repository_url', 'images', 'images.*']);
+    $stages = \App\Models\ProjectUpdate::STAGES;
 @endphp
 
 <div x-data="{ open: @js($hasErrors) }" class="space-y-2">
@@ -16,6 +17,21 @@
     <form x-show="open" x-cloak method="POST" action="{{ route('progress.store', $assignment) }}"
         enctype="multipart/form-data" class="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
         @csrf
+
+        <div>
+            <label for="stage-{{ $assignment->id }}" class="block text-sm font-medium text-slate-700">
+                Etapa del proyecto
+            </label>
+            <select id="stage-{{ $assignment->id }}" name="stage" required
+                class="mt-1 block w-full rounded-md border border-slate-300 p-2 text-sm">
+                @foreach ($stages as $value => $label)
+                    <option value="{{ $value }}" @selected(old('stage', \App\Models\ProjectUpdate::STAGE_ANALYSIS) === $value)>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
+            @error('stage')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+        </div>
 
         <div>
             <label for="description-{{ $assignment->id }}" class="block text-sm font-medium text-slate-700">

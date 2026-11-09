@@ -75,12 +75,38 @@
                 </div>
 
                 @role('student')
-                    @if ($a->updates->isNotEmpty())
-                        <div class="space-y-2 border-t border-slate-100 pt-3">
-                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mis avances</p>
-                            @foreach ($a->updates->sortByDesc('created_at') as $update)
-                                <x-progress-card :update="$update" :show-student="false" />
-                            @endforeach
+                    @if ($a->updates->isNotEmpty() || in_array($a->status, ['accepted', 'in_progress', 'completed'], true))
+                        @php
+                            $studentUpdates = $a->updates->sortByDesc('created_at');
+                        @endphp
+
+                        <div class="space-y-3 border-t border-slate-100 pt-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Seguimiento de entregas</p>
+                                    <p class="text-xs text-slate-500">Todos los avances que enviaste, con su estado actual.</p>
+                                </div>
+                                <span class="text-xs text-slate-500">
+                                    {{ $studentUpdates->count() }} {{ $studentUpdates->count() === 1 ? 'avance enviado' : 'avances enviados' }}
+                                </span>
+                            </div>
+
+                            <x-project-progress
+                                :updates="$studentUpdates"
+                                title="Progreso de tus entregas"
+                                subtitle="Según las etapas aprobadas por el profesor." />
+
+                            @if ($studentUpdates->isNotEmpty())
+                                <div class="space-y-2">
+                                    @foreach ($studentUpdates as $update)
+                                        <x-progress-card :update="$update" :show-student="false" />
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="rounded-md border border-dashed border-slate-200 px-3 py-4 text-center text-sm text-slate-500">
+                                    Todavía no enviaste avances.
+                                </p>
+                            @endif
                         </div>
                     @endif
 

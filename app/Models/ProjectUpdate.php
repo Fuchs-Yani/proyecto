@@ -18,6 +18,29 @@ class ProjectUpdate extends Model
 
     public const STATUS_REJECTED = 'rejected';
 
+    public const STAGE_ANALYSIS = 'analisis';
+
+    public const STAGE_DESIGN = 'diseno';
+
+    public const STAGE_DEVELOPMENT = 'desarrollo';
+
+    public const STAGE_TESTING = 'pruebas';
+
+    public const STAGE_DELIVERY = 'entrega';
+
+    /**
+     * Etapas del proyecto, en el orden en que se espera completarlas.
+     *
+     * @var array<string, string>
+     */
+    public const STAGES = [
+        self::STAGE_ANALYSIS => 'Análisis',
+        self::STAGE_DESIGN => 'Diseño',
+        self::STAGE_DEVELOPMENT => 'Desarrollo',
+        self::STAGE_TESTING => 'Pruebas',
+        self::STAGE_DELIVERY => 'Entrega',
+    ];
+
     /**
      * Cantidad máxima de imágenes permitidas por avance.
      */
@@ -31,6 +54,7 @@ class ProjectUpdate extends Model
         'student_id',
         'description',
         'repository_url',
+        'stage',
         'status',
         'approved_at',
         'approved_by',
@@ -93,6 +117,14 @@ class ProjectUpdate extends Model
     public function isRejected(): bool
     {
         return $this->status === self::STATUS_REJECTED;
+    }
+
+    /**
+     * Nombre legible de la etapa a la que pertenece el avance.
+     */
+    public function stageLabel(): string
+    {
+        return self::STAGES[$this->stage] ?? 'Sin etapa';
     }
 
     /**

@@ -207,7 +207,54 @@
                 </div>
             </section>
         @elseif (auth()->user()->hasRole('beneficiario'))
-            {{-- El beneficiario navega desde el menú superior; el dashboard no muestra módulos. --}}
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Hola, {{ auth()->user()->name }}</h2>
+                    <p class="text-sm text-slate-500">Este es el resumen de tus ideas y proyectos.</p>
+                </div>
+                <a href="{{ route('ideas.mine') }}" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50">
+                    Ver mis ideas
+                </a>
+            </div>
+
+            <section class="rounded-lg border border-slate-200 bg-white">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Avances</h3>
+                        <p class="text-sm text-slate-500">Últimos avances aprobados de tus proyectos.</p>
+                    </div>
+                    <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        {{ $beneficiaryUpdatesCount }} {{ $beneficiaryUpdatesCount === 1 ? 'avance aprobado' : 'avances aprobados' }}
+                    </span>
+                </div>
+
+                @if ($beneficiaryUpdates->isNotEmpty())
+                    <div class="grid grid-cols-1 gap-3 p-4 lg:grid-cols-2">
+                        @foreach ($beneficiaryUpdates as $update)
+                            <div class="space-y-2">
+                                @if ($update->projectIdea)
+                                    <a href="{{ route('ideas.show', $update->projectIdea) }}"
+                                        class="inline-flex text-sm font-semibold text-slate-900 hover:underline">
+                                        {{ $update->projectIdea->title }}
+                                    </a>
+                                @endif
+
+                                <x-progress-card :update="$update" :show-repository="false" />
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if ($beneficiaryUpdatesCount > $beneficiaryUpdates->count())
+                        <p class="border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+                            Mostrando los últimos {{ $beneficiaryUpdates->count() }} de {{ $beneficiaryUpdatesCount }} avances aprobados.
+                        </p>
+                    @endif
+                @else
+                    <div class="px-4 py-8 text-center text-sm text-slate-500">
+                        Todavía no hay avances aprobados en tus proyectos.
+                    </div>
+                @endif
+            </section>
         @elseif (auth()->user()->hasRole('admin'))
             <div class="bg-slate-800 text-slate-100 rounded-lg px-6 py-3 text-sm text-center">Banco de Ideas y Proyectos de Software</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">

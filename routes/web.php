@@ -27,6 +27,8 @@ Route::get('/dashboard', function () {
     $studentSummary = ['total' => 0, 'applied' => 0];
     $pendingApplications = collect();
     $pendingUpdates = collect();
+    $beneficiaryUpdates = collect();
+    $beneficiaryUpdatesCount = 0;
     $pendingApplicationsCount = 0;
     $pendingUpdatesCount = 0;
 
@@ -173,6 +175,20 @@ Route::get('/dashboard', function () {
         $pendingUpdatesCount = ProjectUpdate::where('status', ProjectUpdate::STATUS_PENDING)->count();
     }
 
+    if (auth()->user()->hasRole('beneficiario')) {
+        $beneficiaryUpdatesQuery = ProjectUpdate::query()
+            ->where('status', ProjectUpdate::STATUS_APPROVED)
+            ->whereHas('projectIdea', fn ($query) => $query->where('organizer_id', auth()->id()));
+
+        $beneficiaryUpdatesCount = (clone $beneficiaryUpdatesQuery)->count();
+
+        $beneficiaryUpdates = $beneficiaryUpdatesQuery
+            ->with(['projectIdea', 'student', 'images'])
+            ->latest('approved_at')
+            ->take(6)
+            ->get();
+    }
+
     return view('dashboard', compact(
         'ideas',
         'stats',
@@ -181,6 +197,8 @@ Route::get('/dashboard', function () {
         'studentSummary',
         'pendingApplications',
         'pendingUpdates',
+        'beneficiaryUpdates',
+        'beneficiaryUpdatesCount',
         'pendingApplicationsCount',
         'pendingUpdatesCount',
     ));

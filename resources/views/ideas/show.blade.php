@@ -30,29 +30,52 @@
             $viewer = auth()->user();
             $canReviewUpdates = $viewer?->hasAnyRole(['admin', 'profesor']) ?? false;
             $isBeneficiaryOwner = $viewer !== null && $projectIdea->organizer_id === $viewer->id;
+            $projectUpdates = $projectIdea->updates;
+            $approvedProjectUpdates = $projectUpdates
+                ->where('status', \App\Models\ProjectUpdate::STATUS_APPROVED)
+                ->sortBy('approved_at');
             $visibleUpdates = ($canReviewUpdates
-                ? $projectIdea->updates
-                : $projectIdea->updates->where('status', \App\Models\ProjectUpdate::STATUS_APPROVED))
+                ? $projectUpdates
+                : $approvedProjectUpdates)
                 ->sortByDesc('created_at');
         @endphp
 
-        @if (($canReviewUpdates || $isBeneficiaryOwner) && $visibleUpdates->isNotEmpty())
+        @if ($canReviewUpdates || $isBeneficiaryOwner)
+            <x-project-progress
+                :updates="$canReviewUpdates ? $projectUpdates : $approvedProjectUpdates"
+                title="Progreso del proyecto"
+                subtitle="Basado en las etapas aprobadas por el profesor." />
+
             <section class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <h3 class="font-bold text-slate-900 text-sm">Avances del proyecto</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm">Avances del proyecto</h3>
+                        <p class="text-xs text-slate-500">
+                            {{ $canReviewUpdates
+                                ? 'Todos los avances enviados por los alumnos.'
+                                : 'Solo se muestran las descripciones e imágenes aprobadas por el profesor.' }}
+                        </p>
+                    </div>
                     <span class="text-xs text-slate-500">
                         {{ $visibleUpdates->count() }} {{ $visibleUpdates->count() === 1 ? 'avance' : 'avances' }}
                     </span>
                 </div>
-                <div class="space-y-3">
-                    @foreach ($visibleUpdates as $update)
-                        <x-progress-card
-                            :update="$update"
-                            :show-student="$canReviewUpdates"
-                            :show-repository="$canReviewUpdates"
-                            :show-approve="$canReviewUpdates" />
-                    @endforeach
-                </div>
+
+                @if ($visibleUpdates->isNotEmpty())
+                    <div class="space-y-3">
+                        @foreach ($visibleUpdates as $update)
+                            <x-progress-card
+                                :update="$update"
+                                :show-student="$canReviewUpdates"
+                                :show-repository="$canReviewUpdates"
+                                :show-approve="$canReviewUpdates" />
+                        @endforeach
+                    </div>
+                @else
+                    <p class="py-4 text-center text-sm text-slate-500">
+                        Todavía no hay avances aprobados por el profesor.
+                    </p>
+                @endif
             </section>
         @endif
 
@@ -234,7 +257,9 @@
 
         @role('student')
             @if ($alreadyApplied)
-                @php($mine = $projectIdea->assignments->firstWhere('student_id', auth()->id()))
+                @php
+                    $mine = $projectIdea->assignments->firstWhere('student_id', auth()->id());
+                @endphp
                 <div class="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <p class="text-sm">
@@ -259,14 +284,38 @@
                     </div>
 
                     @if ($mine)
-                        @if ($mine->updates->isNotEmpty())
-                            <div class="space-y-2 border-t border-slate-100 pt-3">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mis avances</p>
-                                @foreach ($mine->updates->sortByDesc('created_at') as $update)
-                                    <x-progress-card :update="$update" :show-student="false" />
-                                @endforeach
+                        @php
+                            $studentUpdates = $mine->updates->sortByDesc('created_at');
+                        @endphp
+
+                        <div class="space-y-3 border-t border-slate-100 pt-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Seguimiento de entregas</p>
+                                    <p class="text-xs text-slate-500">Todos los avances que enviaste, con su estado actual.</p>
+                                </div>
+                                <span class="text-xs text-slate-500">
+                                    {{ $studentUpdates->count() }} {{ $studentUpdates->count() === 1 ? 'avance enviado' : 'avances enviados' }}
+                                </span>
                             </div>
-                        @endif
+
+                            <x-project-progress
+                                :updates="$studentUpdates"
+                                title="Progreso de tus entregas"
+                                subtitle="Según las etapas aprobadas por el profesor." />
+
+                            @if ($studentUpdates->isNotEmpty())
+                                <div class="space-y-2">
+                                    @foreach ($studentUpdates as $update)
+                                        <x-progress-card :update="$update" :show-student="false" />
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="rounded-md border border-dashed border-slate-200 px-3 py-4 text-center text-sm text-slate-500">
+                                    Todavía no enviaste avances.
+                                </p>
+                            @endif
+                        </div>
 
                         @if ($mine->canReceiveUpdates())
                             <div class="border-t border-slate-100 pt-3">

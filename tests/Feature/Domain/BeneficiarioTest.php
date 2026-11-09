@@ -2,6 +2,7 @@
 
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\ProjectUpdate;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -143,6 +144,86 @@ test('el dashboard del beneficiario no muestra la barra secundaria de panel', fu
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
         ->assertDontSee('Actualiza tus datos y tu contraseña.')
         ->assertDontSee('Todas las postulaciones');
+});
+
+test('el dashboard del beneficiario muestra el modulo de avances aprobados de sus ideas', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $otroBeneficiario = User::factory()->create();
+    $otroBeneficiario->assignRole('beneficiario');
+
+    $student = User::factory()->create();
+    $student->assignRole('student');
+
+    $idea = ProjectIdea::factory()->create([
+        'organizer_id' => $beneficiario->id,
+        'title' => 'Mi proyecto con avances',
+    ]);
+
+    $otherIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $otroBeneficiario->id,
+        'title' => 'Proyecto de otro beneficiario',
+    ]);
+
+    $assignment = Assignment::factory()->create([
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'status' => 'accepted',
+    ]);
+
+    $otherAssignment = Assignment::factory()->create([
+        'project_idea_id' => $otherIdea->id,
+        'student_id' => $student->id,
+        'status' => 'accepted',
+    ]);
+
+    ProjectUpdate::create([
+        'assignment_id' => $assignment->id,
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'description' => 'Avance aprobado visible',
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now(),
+    ]);
+
+    ProjectUpdate::create([
+        'assignment_id' => $assignment->id,
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'description' => 'Avance pendiente oculto',
+        'status' => ProjectUpdate::STATUS_PENDING,
+    ]);
+
+    ProjectUpdate::create([
+        'assignment_id' => $otherAssignment->id,
+        'project_idea_id' => $otherIdea->id,
+        'student_id' => $student->id,
+        'description' => 'Avance de otro proyecto',
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now(),
+    ]);
+
+    $this->actingAs($beneficiario)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Avances')
+        ->assertSee('1 avance aprobado')
+        ->assertSee('Mi proyecto con avances')
+        ->assertSee('Avance aprobado visible')
+        ->assertDontSee('Avance pendiente oculto')
+        ->assertDontSee('Proyecto de otro beneficiario')
+        ->assertDontSee('Avance de otro proyecto');
+});
+
+test('el dashboard del beneficiario muestra un mensaje cuando todavia no hay avances aprobados', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $this->actingAs($beneficiario)->get('/dashboard')
+        ->assertOk()
+        ->assertSee('Avances')
+        ->assertSee('0 avances aprobados')
+        ->assertSee('Todavía no hay avances aprobados en tus proyectos.');
 });
 
 test('el beneficiario ve solo sus propias ideas en mis ideas', function () {

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\ProjectUpdate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreProjectUpdateRequest extends FormRequest
 {
@@ -21,6 +22,7 @@ class StoreProjectUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'stage' => ['required', Rule::in(array_keys(ProjectUpdate::STAGES))],
             'description' => ['required', 'string', 'max:5000'],
             'repository_url' => ['nullable', 'string', 'max:2048', 'url:http,https'],
             'images' => ['nullable', 'array', 'max:'.ProjectUpdate::MAX_IMAGES],
@@ -34,6 +36,8 @@ class StoreProjectUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'stage.required' => 'Elegí la etapa del proyecto a la que corresponde el avance.',
+            'stage.in' => 'La etapa seleccionada no es válida.',
             'description.required' => 'Contanos qué avanzaste en el proyecto.',
             'description.max' => 'La descripción del avance no puede superar los 5000 caracteres.',
             'repository_url.url' => 'La URL del repositorio debe empezar con http:// o https://.',

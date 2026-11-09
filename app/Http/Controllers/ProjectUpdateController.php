@@ -65,6 +65,7 @@ class ProjectUpdateController extends Controller
                     'student_id' => auth()->id(),
                     'description' => $data['description'],
                     'repository_url' => $data['repository_url'] ?? null,
+                    'stage' => $data['stage'],
                     'status' => ProjectUpdate::STATUS_PENDING,
                 ]);
 
