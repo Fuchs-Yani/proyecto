@@ -11,106 +11,106 @@ Aplicación web para conectar estudiantes, docentes y beneficiarios alrededor de
 
 ## Instalación
 
+La forma rápida es usar el script de Composer, que instala dependencias, crea el `.env`, genera la clave, migra **y carga todos los datos demo**:
+
+```bash
+composer setup
+```
+
+O paso a paso:
+
 ```bash
 composer install
 copy .env.example .env
 php artisan key:generate
-php artisan migrate
+php artisan migrate --seed
 php artisan storage:link
-php artisan db:seed
 pnpm install
 pnpm build
 ```
 
-`php artisan db:seed` crea **solo roles y permisos**. No carga usuarios, ideas, postulaciones ni adjuntos de ejemplo.
+> `php artisan migrate --seed` ejecuta `DatabaseSeeder`, que carga roles, permisos, cuentas de los cuatro roles, proyectos en todos los estados, postulaciones, avances, adjuntos y notificaciones.
 
-## Primer administrador
-
-Después de migrar y sembrar la base, crear el primer usuario administrador real:
+Para volver a dejar el escenario demo como recién instalado:
 
 ```bash
-php artisan app:create-admin
+php artisan db:seed
 ```
 
-El comando pide nombre, correo y contraseña. También acepta opciones:
+Para borrar todo y recrearlo desde cero:
 
 ```bash
-php artisan app:create-admin --name="Nombre" --email="admin@ejemplo.com" --password="una-clave-segura"
+php artisan migrate:fresh --seed
 ```
 
-Luego se puede ingresar desde `/login` o directamente desde `/admin/login`.
+## Qué incluye el escenario demo
 
-## Cuentas de prueba (solo desarrollo)
+- **9 proyectos** en todos los estados:
+  - disponibles con cupo libre, con cupo completo y pendientes de revisión;
+  - en desarrollo (incluido uno iniciado antes de completar el cupo);
+  - terminados (con las 5 etapas aprobadas);
+  - cancelado con motivo.
+- **11 postulaciones** en todos los estados: postulado, aceptado, en progreso, completado, rechazado y abandonado.
+- **20 avances** repartidos entre Análisis, Diseño, Desarrollo, Pruebas y Entrega, con avances aprobados, pendientes de revisión y rechazados.
+- Adjuntos PDF/PNG, imágenes de evidencia en avances y notificaciones para alumnos y beneficiarios.
+- El proyecto **“Sistema web para mostrar animalitos en adopción”** tiene 1 aceptado y 1 pendiente con el cupo completo, ideal para probar el cartel de inicio del proyecto.
 
-No se crean automáticamente. Para recrearlas:
+Todos los seeders son idempotentes: se pueden ejecutar las veces que haga falta sin duplicar registros.
 
-```bash
-php artisan db:seed --class=TestAccountsSeeder
-```
+## Cuentas demo
 
-| Rol | Correo | Contraseña |
-| --- | --- | --- |
-| Admin | `admin@admin.com` | `password123` |
-| Estudiante | `estudiante@test.com` | `password123` |
-| Beneficiario | `beneficiario@test.com` | `password123` |
-| Profesor | `profesor@test.com` | `password123` |
+Contraseña para todas: `password123`.
 
-> Estas cuentas son solo para pruebas. Antes de publicar el proyecto, eliminarlas y crear las cuentas reales.
-
-## Proyectos de ejemplo (solo desarrollo)
-
-Para crear 4 beneficiarios con una idea cada uno, más un PDF de requerimientos y una imagen de inspiración por idea:
-
-```bash
-php artisan db:seed --class=BeneficiaryProjectsSeeder
-```
-
-| Beneficiario | Correo | Idea |
-| --- | --- | --- |
-| Refugio Huellitas de Esperanza | `refugio@test.com` | Sistema de adopciones |
-| Escuela Primaria N° 12 | `escuela@test.com` | Gestión de biblioteca escolar |
-| María González | `maria@test.com` | Gestión de despensa |
-| Lucía Fernández | `lucia@test.com` | Gestión de medicación |
-
-Todas usan la contraseña `password123`. El seeder es idempotente: se puede volver a ejecutar sin duplicar las ideas ni los adjuntos.
-
-## Estudiantes de prueba (solo desarrollo)
-
-Para crear 7 estudiantes adicionales:
-
-```bash
-php artisan db:seed --class=StudentAccountsSeeder
-```
-
-| Nombre | Correo |
+| Rol | Correo |
 | --- | --- |
-| Juan Pérez | `juan.perez@test.com` |
-| Sofía Ramírez | `sofia.ramirez@test.com` |
-| Mateo Álvarez | `mateo.alvarez@test.com` |
-| Valentina Torres | `valentina.torres@test.com` |
-| Nicolás Herrera | `nicolas.herrera@test.com` |
-| Camila Rojas | `camila.rojas@test.com` |
-| Lucas Medina | `lucas.medina@test.com` |
+| Admin | `admin@admin.com` |
+| Profesor | `profesor@test.com` |
+| Profesor | `ricardo.salas@test.com` |
+| Alumno 2° año | `estudiante@test.com` |
+| Alumno 2° año | `juan.perez@test.com` |
+| Alumno 2° año | `sofia.ramirez@test.com` |
+| Alumno 2° año | `mateo.alvarez@test.com` |
+| Alumno 3° año | `valentina.torres@test.com` |
+| Alumno 3° año | `nicolas.herrera@test.com` |
+| Alumno 3° año | `camila.rojas@test.com` |
+| Alumno 3° año | `lucas.medina@test.com` |
+| Beneficiario | `refugio@test.com` |
+| Beneficiario | `escuela@test.com` |
+| Beneficiario | `maria@test.com` |
+| Beneficiario | `lucia@test.com` |
+| Beneficiario | `beneficiario@test.com` |
+| Beneficiario | `salud@test.com` |
+| Beneficiario | `vecinal@test.com` |
+| Beneficiario | `deportes@test.com` |
+| Beneficiario | `estudio@test.com` |
 
-Todos usan la contraseña `password123`.
+> Estas cuentas son solo para pruebas. Antes de publicar el proyecto, eliminarlas y crear las cuentas reales con `php artisan app:create-admin`.
 
-## Profesor adicional (solo desarrollo)
+## Seeders individuales (opcional)
 
-Para crear un profesor adicional:
+Cada seeder se puede ejecutar por separado:
 
 ```bash
+php artisan db:seed --class=DemoDataSeeder
+php artisan db:seed --class=TestAccountsSeeder
+php artisan db:seed --class=StudentAccountsSeeder
 php artisan db:seed --class=ProfessorAccountSeeder
+php artisan db:seed --class=BeneficiaryProjectsSeeder
+php artisan db:seed --class=RolesAndPermissionsSeeder
 ```
 
-| Nombre | Correo | Contraseña |
-| --- | --- | --- |
-| Ricardo Salas | `ricardo.salas@test.com` | `password123` |
+- **`RolesAndPermissionsSeeder`**: solo roles y permisos.
+- **`TestAccountsSeeder`**: admin, profesor, alumno y beneficiario base.
+- **`StudentAccountsSeeder`**: 7 alumnos adicionales.
+- **`ProfessorAccountSeeder`**: profesor adicional.
+- **`BeneficiaryProjectsSeeder`**: beneficiarios con sus ideas y adjuntos.
+- **`DemoDataSeeder`**: todo el escenario completo. `DatabaseSeeder` lo ejecuta automáticamente.
 
 ## Roles
 
-- `student`: explora ideas disponibles, se postula y retira postulaciones.
-- `beneficiario`: publica ideas, administra sus adjuntos (máximo 2 archivos por idea) y ve las postulaciones recibidas.
-- `profesor`: consulta ideas y postulaciones para seguimiento.
+- `student`: explora ideas disponibles, se postula/retira y envía avances.
+- `beneficiario`: publica ideas, administra sus adjuntos (máximo 2 archivos por idea) y consulta el progreso aprobado.
+- `profesor`: revisa ideas, define cupos, acepta postulantes y aprueba o rechaza avances.
 - `admin`: acceso completo al panel de Filament.
 
 Los roles se guardan únicamente con Spatie Permission. Las columnas antiguas `users.role` e `users.is_admin` fueron eliminadas para evitar datos duplicados.

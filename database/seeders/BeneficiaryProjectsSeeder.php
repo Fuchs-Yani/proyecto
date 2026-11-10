@@ -26,7 +26,7 @@ class BeneficiaryProjectsSeeder extends Seeder
     public function run(): void
     {
         // Asegura roles y permisos, sin crear los datos demo antiguos.
-        $this->call(DatabaseSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         foreach ($this->projects() as $data) {
             $beneficiary = User::updateOrCreate(

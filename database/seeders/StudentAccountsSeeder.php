@@ -11,13 +11,12 @@ class StudentAccountsSeeder extends Seeder
     /**
      * Crea 7 estudiantes de prueba.
      *
-     * No se ejecuta desde DatabaseSeeder. Para usarlo:
-     * php artisan db:seed --class=StudentAccountsSeeder
+     * También se ejecuta desde DemoDataSeeder.
      */
     public function run(): void
     {
         // Garantiza que existan los roles y permisos antes de asignarlos.
-        $this->call(DatabaseSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         $students = [
             ['name' => 'Juan Pérez', 'email' => 'juan.perez@test.com'],

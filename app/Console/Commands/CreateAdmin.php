@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -24,7 +24,7 @@ class CreateAdmin extends Command
         // permisos personalizados si el comando se vuelve a ejecutar.
         if (Role::where('name', 'admin')->doesntExist()) {
             $this->callSilently('db:seed', [
-                '--class' => DatabaseSeeder::class,
+                '--class' => RolesAndPermissionsSeeder::class,
                 '--force' => true,
             ]);
         }

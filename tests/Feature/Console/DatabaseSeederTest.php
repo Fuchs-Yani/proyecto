@@ -2,11 +2,12 @@
 
 use App\Models\ProjectIdea;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
-test('database seeder only creates roles and permissions', function () {
-    $this->seed();
+test('roles and permissions seeder only creates roles and permissions', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
 
     expect(User::count())->toBe(0)
         ->and(ProjectIdea::count())->toBe(0)

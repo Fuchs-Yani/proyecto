@@ -11,12 +11,11 @@ class ProfessorAccountSeeder extends Seeder
     /**
      * Crea un profesor adicional de prueba.
      *
-     * No se ejecuta desde DatabaseSeeder. Para usarlo:
-     * php artisan db:seed --class=ProfessorAccountSeeder
+     * También se ejecuta desde DemoDataSeeder.
      */
     public function run(): void
     {
-        $this->call(DatabaseSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         $professor = User::updateOrCreate(
             ['email' => 'ricardo.salas@test.com'],

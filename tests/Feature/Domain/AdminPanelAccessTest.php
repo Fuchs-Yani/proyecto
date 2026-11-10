@@ -1,10 +1,11 @@
 <?php
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
-    $this->seed();
+    $this->seed(RolesAndPermissionsSeeder::class);
 });
 
 test('solo el administrador puede acceder al panel', function () {

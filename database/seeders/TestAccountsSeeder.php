@@ -9,15 +9,14 @@ use Illuminate\Support\Facades\Hash;
 class TestAccountsSeeder extends Seeder
 {
     /**
-     * Crea únicamente las cuentas de prueba.
+     * Crea las cuentas de prueba de los cuatro roles.
      *
-     * No se ejecuta desde DatabaseSeeder. Para usarlo:
-     * php artisan db:seed --class=TestAccountsSeeder
+     * También se ejecuta desde DemoDataSeeder.
      */
     public function run(): void
     {
         // Garantiza que existan los roles y permisos antes de asignarlos.
-        $this->call(DatabaseSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         $accounts = [
             [
