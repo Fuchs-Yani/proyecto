@@ -46,6 +46,18 @@ class Assignment extends Model
      */
     public const WITHDRAWABLE_STATUSES = [self::STATUS_ACCEPTED, self::STATUS_IN_PROGRESS];
 
+    /**
+     * Estados que cuentan como una postulación activa del alumno.
+     * Mientras tenga una, no puede postularse a otra idea.
+     *
+     * @var array<int, string>
+     */
+    public const ACTIVE_APPLICATION_STATUSES = [
+        self::STATUS_APPLIED,
+        self::STATUS_ACCEPTED,
+        self::STATUS_IN_PROGRESS,
+    ];
+
     protected $table = 'assignments';
 
     protected $fillable = [
@@ -183,6 +195,14 @@ class Assignment extends Model
                 $update->delete();
             });
         });
+    }
+
+    /**
+     * Filtra las postulaciones que siguen activas para el alumno.
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::ACTIVE_APPLICATION_STATUSES);
     }
 
     /**

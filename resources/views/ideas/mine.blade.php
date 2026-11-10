@@ -13,6 +13,6 @@
 
     <div class="py-6 max-w-6xl mx-auto px-4 space-y-3">
         @include('ideas._search', ['action' => route('ideas.mine'), 'ideas' => $ideas, 'tags' => $tags])
-        @include('ideas._list', ['ideas' => $ideas, 'emptyMessage' => request()->filled('search') ? 'No se encontraron ideas tuyas con ese nombre.' : 'Todavía no publicaste ninguna idea.'])
+        @include('ideas._list', ['ideas' => $ideas, 'showProgress' => true, 'emptyMessage' => request()->filled('search') ? 'No se encontraron ideas tuyas con ese nombre.' : 'Todavía no publicaste ninguna idea.'])
     </div>
 </x-app-layout>

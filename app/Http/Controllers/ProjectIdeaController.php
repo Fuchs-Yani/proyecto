@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\ProjectUpdate;
 use App\Models\Tag;
 use App\Notifications\ApplicationReviewed;
 use App\Notifications\ProjectIdeaReviewed;
@@ -232,10 +233,17 @@ class ProjectIdeaController extends Controller
 
         $this->notifyRejectedApplications($pendingApplications);
 
-        return back()->with(
-            'status',
-            'Proyecto iniciado con '.$accepted.' '.($accepted === 1 ? 'integrante.' : 'integrantes.'),
-        );
+        $status = 'Proyecto iniciado con '.$accepted.' '.($accepted === 1 ? 'integrante.' : 'integrantes.');
+
+        $pendingCount = $pendingApplications->count();
+
+        if ($pendingCount > 0) {
+            $status .= $pendingCount === 1
+                ? ' Se rechazó 1 postulación pendiente.'
+                : ' Se rechazaron '.$pendingCount.' postulaciones pendientes.';
+        }
+
+        return back()->with('status', $status);
     }
 
     // GET /mis-ideas - el beneficiario ve únicamente las ideas que publicó
@@ -244,10 +252,17 @@ class ProjectIdeaController extends Controller
         abort_unless(auth()->user()->hasRole('beneficiario'), 403);
 
         $ideas = ProjectIdea::query()
-            ->with(['organizer', 'attachments', 'tags'])
+            ->with([
+                'organizer',
+                'attachments',
+                'tags',
+                // El beneficiario solo puede ver el progreso de avances aprobados.
+                'updates' => fn ($query) => $query->where('status', ProjectUpdate::STATUS_APPROVED),
+            ])
             ->withCount([
                 'assignments as active_assignments_count' => fn ($query) => $query->whereNotIn('status', Assignment::INACTIVE_STATUSES),
                 'assignments as accepted_assignments_count' => fn ($query) => $query->whereIn('status', Assignment::ACCEPTED_STATUSES),
+                'assignments as pending_assignments_count' => fn ($query) => $query->where('status', Assignment::STATUS_APPLIED),
             ])
             ->where('organizer_id', auth()->id())
             ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tag) => $tag->whereKey($request->query('tag'))))
@@ -271,6 +286,7 @@ class ProjectIdeaController extends Controller
             ->withCount([
                 'assignments as active_assignments_count' => fn ($query) => $query->whereNotIn('status', Assignment::INACTIVE_STATUSES),
                 'assignments as accepted_assignments_count' => fn ($query) => $query->whereIn('status', Assignment::ACCEPTED_STATUSES),
+                'assignments as pending_assignments_count' => fn ($query) => $query->where('status', Assignment::STATUS_APPLIED),
             ])
             ->when(
                 $user?->hasAnyRole(['profesor', 'admin']),
@@ -320,7 +336,11 @@ class ProjectIdeaController extends Controller
             ? $projectIdea->assignments()->where('student_id', auth()->id())->exists()
             : false;
 
-        return view('ideas.show', compact('projectIdea', 'alreadyApplied'));
+        $activeAssignment = auth()->check() && auth()->user()->hasRole('student')
+            ? auth()->user()->activeAssignment()
+            : null;
+
+        return view('ideas.show', compact('projectIdea', 'alreadyApplied', 'activeAssignment'));
     }
 
     /**

@@ -22,13 +22,24 @@
         <!-- Selección de Rol -->
         <div class="mt-4">
             <x-input-label for="role" :value="__('¿Cómo vas a participar?')" />
-            <select id="role" name="role" onchange="toggleInstitutionField()" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm text-slate-700" required>
+            <select id="role" name="role" onchange="toggleRoleFields()" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm text-slate-700" required>
                 <option value="" disabled {{ old('role') ? '' : 'selected' }}>Selecciona tu perfil</option>
                 <option value="beneficiario" {{ old('role') == 'beneficiario' ? 'selected' : '' }}>Beneficiario</option>
                 <option value="profesor" {{ old('role') == 'profesor' ? 'selected' : '' }}>Profesor</option>
                 <option value="student" {{ old('role') == 'student' ? 'selected' : '' }}>Estudiante</option>
             </select>
             <x-input-error :messages="$errors->get('role')" class="mt-2" />
+        </div>
+
+        <!-- Año de la carrera (solo estudiantes) -->
+        <div class="mt-4" id="career_year_container" style="display: {{ old('role') === 'student' ? 'block' : 'none' }};">
+            <x-input-label for="career_year" :value="__('Año de la carrera')" />
+            <select id="career_year" name="career_year" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm text-slate-700">
+                <option value="" disabled {{ old('career_year') ? '' : 'selected' }}>Selecciona tu año</option>
+                <option value="2" @selected(old('career_year') == 2)>2° año</option>
+                <option value="3" @selected(old('career_year') == 3)>3° año</option>
+            </select>
+            <x-input-error :messages="$errors->get('career_year')" class="mt-2" />
         </div>
 
         <!-- Nombre de la Institución (Opcional solo para Beneficiarios) -->
@@ -60,18 +71,28 @@
         <p class="mt-4 text-center text-sm text-slate-500"><a href="{{ route('ideas.index') }}" class="underline">Explorar proyectos</a> sin cuenta</p>
     </form>
 
-    <!-- Script JavaScript para mostrar/ocultar el input de institución -->
+    <!-- Script JavaScript para mostrar/ocultar los campos según el rol -->
     <script>
-        function toggleInstitutionField() {
+        function toggleRoleFields() {
             const roleSelect = document.getElementById('role');
             const institutionContainer = document.getElementById('institution_container');
-            
-            if (roleSelect.value === 'beneficiario') {
-                institutionContainer.style.display = 'block';
-            } else {
-                institutionContainer.style.display = 'none';
+            const careerYearContainer = document.getElementById('career_year_container');
+            const careerYearSelect = document.getElementById('career_year');
+
+            const isBeneficiary = roleSelect.value === 'beneficiario';
+            const isStudent = roleSelect.value === 'student';
+
+            institutionContainer.style.display = isBeneficiary ? 'block' : 'none';
+            if (!isBeneficiary) {
                 document.getElementById('institution_name').value = ''; // Limpia el campo si cambia de opción
             }
+
+            careerYearContainer.style.display = isStudent ? 'block' : 'none';
+            if (!isStudent) {
+                careerYearSelect.value = ''; // Limpia el año si cambia de opción
+            }
         }
+
+        toggleRoleFields();
     </script>
 </x-guest-layout>

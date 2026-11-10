@@ -132,7 +132,7 @@ test('el avance queda pendiente y el beneficiario no lo ve hasta que se apruebe'
         ->assertDontSee($update->description)
         ->assertSee('Avances del proyecto')
         ->assertSee('Todavía no hay avances aprobados por el profesor.')
-        ->assertSee('Avances aprobados: 0 de 1');
+        ->assertSee('Etapas aprobadas: 0 de 5');
 });
 
 test('el profesor ve los avances agrupados por proyecto y puede aprobarlos', function () {
@@ -181,8 +181,8 @@ test('el beneficiario ve la descripcion y las imagenes aprobadas pero no el repo
         ->assertSee('Quedó funcionando el registro de préstamos.')
         ->assertSee('progress-images/', false)
         ->assertSee('Progreso del proyecto')
-        ->assertSee('Avances aprobados: 1 de 1')
-        ->assertSee('100%')
+        ->assertSee('Etapas aprobadas: 1 de 5')
+        ->assertSee('20%')
         ->assertDontSee('https://github.com/camila/biblioteca');
 });
 
@@ -201,8 +201,8 @@ test('el progreso del beneficiario no cuenta los avances rechazados', function (
 
     $this->actingAs($this->beneficiary)->get("/ideas/{$this->idea->id}")
         ->assertOk()
-        ->assertSee('Avances aprobados: 1 de 1')
-        ->assertSee('100%')
+        ->assertSee('Etapas aprobadas: 1 de 5')
+        ->assertSee('20%')
         ->assertSee('Avance aprobado.')
         ->assertDontSee('Avance rechazado que no debe verse.');
 });
@@ -251,8 +251,118 @@ test('el alumno ve el seguimiento de todas sus entregas con su estado en la idea
         ->assertSee('Rechazado')
         ->assertSee('https://github.com/camila/biblioteca')
         ->assertSee('Progreso de tus entregas')
-        ->assertSee('Avances aprobados: 1 de 2')
-        ->assertSee('50%');
+        ->assertSee('Etapas aprobadas: 1 de 5')
+        ->assertSee('20%');
+});
+
+test('el alumno ve el progreso dividido por etapas aprobadas y pendientes', function () {
+    createProjectUpdate($this->assignment, [
+        'description' => 'Análisis terminado.',
+        'stage' => ProjectUpdate::STAGE_ANALYSIS,
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now()->subDays(2),
+        'approved_by' => $this->professor->id,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Diseño terminado.',
+        'stage' => ProjectUpdate::STAGE_DESIGN,
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now()->subDay(),
+        'approved_by' => $this->professor->id,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Desarrollo en curso.',
+        'stage' => ProjectUpdate::STAGE_DEVELOPMENT,
+    ]);
+
+    $this->actingAs($this->student)->get("/ideas/{$this->idea->id}")
+        ->assertOk()
+        ->assertSee('Progreso de tus entregas')
+        ->assertSee('Etapas aprobadas: 2 de 5')
+        ->assertSee('40%')
+        ->assertSee('Última etapa aprobada: Diseño')
+        ->assertSee('Pendiente');
+});
+
+test('la tabla de avances del alumno muestra el estado de cada entrega', function () {
+    createProjectUpdate($this->assignment, [
+        'description' => 'Análisis aprobado por el profesor.',
+        'stage' => ProjectUpdate::STAGE_ANALYSIS,
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now(),
+        'approved_by' => $this->professor->id,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Diseño pendiente de revisión.',
+        'stage' => ProjectUpdate::STAGE_DESIGN,
+        'status' => ProjectUpdate::STATUS_PENDING,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Pruebas rechazadas.',
+        'stage' => ProjectUpdate::STAGE_TESTING,
+        'status' => ProjectUpdate::STATUS_REJECTED,
+    ]);
+
+    $this->actingAs($this->student)->get("/ideas/{$this->idea->id}")
+        ->assertOk()
+        ->assertSee('Historial de avances')
+        ->assertSee('Estado de cada avance que enviaste.')
+        ->assertSee('3 registros')
+        ->assertSee('Análisis')
+        ->assertSee('Diseño')
+        ->assertSee('Pruebas')
+        ->assertSee('Aprobado')
+        ->assertSee('Pendiente de revisión')
+        ->assertSee('Rechazado');
+});
+
+test('la tabla de avances del beneficiario solo incluye los aprobados', function () {
+    createProjectUpdate($this->assignment, [
+        'description' => 'Avance aprobado visible.',
+        'status' => ProjectUpdate::STATUS_APPROVED,
+        'approved_at' => now(),
+        'approved_by' => $this->professor->id,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Avance pendiente oculto.',
+        'status' => ProjectUpdate::STATUS_PENDING,
+    ]);
+
+    createProjectUpdate($this->assignment, [
+        'description' => 'Avance rechazado oculto.',
+        'status' => ProjectUpdate::STATUS_REJECTED,
+    ]);
+
+    $this->actingAs($this->beneficiary)->get("/ideas/{$this->idea->id}")
+        ->assertOk()
+        ->assertSee('Historial de avances')
+        ->assertSee('Solo avances aprobados por el profesor.')
+        ->assertSee('1 registro')
+        ->assertSee('Avance aprobado visible.')
+        ->assertDontSee('Avance pendiente oculto.')
+        ->assertDontSee('Avance rechazado oculto.');
+});
+
+test('cada avance debe indicar una etapa valida del proyecto', function () {
+    $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
+        'description' => 'Avance sin etapa.',
+    ])->assertSessionHasErrors([
+        'stage' => 'Elegí la etapa del proyecto a la que corresponde el avance.',
+    ]);
+
+    $this->actingAs($this->student)->post("/assignments/{$this->assignment->id}/avances", [
+        'stage' => 'etapa-invalida',
+        'description' => 'Avance con una etapa que no existe.',
+    ])->assertSessionHasErrors([
+        'stage' => 'La etapa seleccionada no es válida.',
+    ]);
+
+    expect(ProjectUpdate::count())->toBe(0);
 });
 
 test('el alumno ve las imagenes de sus propios avances', function () {
@@ -294,8 +404,8 @@ test('el alumno ve el seguimiento de entregas en la lista de postulaciones', fun
         ->assertSee('Entrega pendiente en la lista.')
         ->assertSee('https://github.com/camila/lista')
         ->assertSee('Progreso de tus entregas')
-        ->assertSee('Avances aprobados: 1 de 2')
-        ->assertSee('50%');
+        ->assertSee('Etapas aprobadas: 1 de 5')
+        ->assertSee('20%');
 });
 
 test('una postulacion aceptada sin avances muestra el estado vacio del seguimiento', function () {
@@ -352,6 +462,38 @@ test('una postulacion completada no puede enviar avances', function () {
     ])->assertForbidden();
 
     expect(ProjectUpdate::count())->toBe(0);
+});
+
+test('el alumno ve el boton agregar avance en postulaciones cuando el proyecto esta en desarrollo', function () {
+    $this->assignment->update(['status' => 'accepted']);
+    $this->idea->update(['status' => 'in_development']);
+
+    $this->actingAs($this->student)->get('/assignments')
+        ->assertOk()
+        ->assertSee('Seguimiento de entregas')
+        ->assertSee('Agregar avance')
+        ->assertSee('Enviar avance')
+        ->assertDontSee('Se habilita cuando el profesor');
+});
+
+test('el boton agregar avance aparece deshabilitado en postulaciones hasta que el proyecto inicia', function () {
+    $this->assignment->update(['status' => 'accepted']);
+    $this->idea->update(['status' => 'available']);
+
+    $this->actingAs($this->student)->get('/assignments')
+        ->assertOk()
+        ->assertSee('Agregar avance')
+        ->assertSee('Se habilita cuando el profesor inicie el proyecto y quede en desarrollo.');
+});
+
+test('el boton agregar avance aparece deshabilitado en postulaciones si la postulacion esta pendiente', function () {
+    $this->assignment->update(['status' => 'applied']);
+    $this->idea->update(['status' => 'in_development']);
+
+    $this->actingAs($this->student)->get('/assignments')
+        ->assertOk()
+        ->assertSee('Agregar avance')
+        ->assertSee('Se habilita cuando el profesor apruebe tu postulación.');
 });
 
 test('la idea no muestra el formulario de avances si la postulacion no fue aceptada', function () {

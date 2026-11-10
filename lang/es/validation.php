@@ -16,6 +16,7 @@ return [
     'attributes' => [
         'attachments' => 'archivos',
         'attachments.*' => 'archivo',
+        'career_year' => 'año de la carrera',
         'comment' => 'comentario',
         'current_password' => 'contraseña actual',
         'description' => 'descripción',

@@ -191,6 +191,116 @@ test('el administrador puede editar el cupo desde el panel', function () {
     expect($idea->fresh()->max_students)->toBe(4);
 });
 
+test('un alumno no puede postularse a otra idea si ya tiene una postulacion activa', function () {
+    $owner = applicationLimitUser('beneficiario');
+    $student = applicationLimitUser('student');
+
+    $firstIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Primera idea del alumno',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    $secondIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Segunda idea del alumno',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    $this->actingAs($student)->post("/ideas/{$firstIdea->id}/apply")
+        ->assertSessionHas('status', 'Postulación creada.');
+
+    $this->actingAs($student)->post("/ideas/{$secondIdea->id}/apply")
+        ->assertSessionHas('status', 'Ya estás postulado a otra idea. Solo podés postularte a una.');
+
+    expect(Assignment::where('student_id', $student->id)->count())->toBe(1)
+        ->and(Assignment::where('student_id', $student->id)->where('project_idea_id', $secondIdea->id)->exists())->toBeFalse();
+});
+
+test('el detalle de otra idea avisa que el alumno ya esta postulado y oculta el boton', function () {
+    $owner = applicationLimitUser('beneficiario');
+    $student = applicationLimitUser('student');
+
+    $firstIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Proyecto ya elegido',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    $secondIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Proyecto solo para ver',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    assignmentForLimit($firstIdea, $student);
+
+    $this->actingAs($student)->get("/ideas/{$secondIdea->id}")
+        ->assertOk()
+        ->assertSee('Proyecto solo para ver')
+        ->assertSee('Ya estás postulado a')
+        ->assertSee('Proyecto ya elegido')
+        ->assertSee('Solo podés postularte a una idea, pero podés seguir viendo las demás.')
+        ->assertDontSee('Postularme');
+});
+
+test('el listado de ideas muestra ya postulado y oculta el boton en las demas', function () {
+    $owner = applicationLimitUser('beneficiario');
+    $student = applicationLimitUser('student');
+
+    $firstIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Idea elegida en el listado',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'title' => 'Otra idea visible en el listado',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    assignmentForLimit($firstIdea, $student);
+
+    $this->actingAs($student)->get('/ideas')
+        ->assertOk()
+        ->assertSee('Idea elegida en el listado')
+        ->assertSee('Otra idea visible en el listado')
+        ->assertSee('Ya postulado')
+        ->assertDontSee('Postularme');
+});
+
+test('una postulacion rechazada no bloquea postularse a otra idea', function () {
+    $owner = applicationLimitUser('beneficiario');
+    $student = applicationLimitUser('student');
+
+    $firstIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    $secondIdea = ProjectIdea::factory()->create([
+        'organizer_id' => $owner->id,
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+
+    assignmentForLimit($firstIdea, $student)->update(['status' => 'rejected']);
+
+    $this->actingAs($student)->post("/ideas/{$secondIdea->id}/apply")
+        ->assertSessionHas('status', 'Postulación creada.');
+
+    expect(Assignment::where('student_id', $student->id)->count())->toBe(2)
+        ->and(Assignment::where('student_id', $student->id)->where('project_idea_id', $secondIdea->id)->exists())->toBeTrue();
+});
+
 function assignmentForLimit(ProjectIdea $idea, User $student): Assignment
 {
     return Assignment::create([

@@ -240,11 +240,62 @@ test('el profesor inicia el proyecto con los aceptados aunque el cupo no este co
     $this->actingAs($professor)
         ->patch("/ideas/{$idea->id}/iniciar")
         ->assertRedirect()
-        ->assertSessionHas('status', 'Proyecto iniciado con 1 integrante.');
+        ->assertSessionHas('status', 'Proyecto iniciado con 1 integrante. Se rechazó 1 postulación pendiente.');
 
     expect($idea->fresh()->status)->toBe('in_development')
         ->and($accepted->fresh()->status)->toBe('accepted')
         ->and($pending->fresh()->status)->toBe('rejected');
+});
+
+test('el cartel de inicio aclara cuantas postulaciones pendientes se rechazaran', function () {
+    $professor = User::factory()->create();
+    $professor->assignRole('profesor');
+    $idea = ProjectIdea::factory()->create([
+        'title' => 'Proyecto con cupo completo entre aceptados y pendientes',
+        'status' => 'available',
+        'max_students' => 2,
+    ]);
+    Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
+    Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'applied']);
+
+    // El cupo de 2 está ocupado por 1 aceptado y 1 pendiente, pero el cartel
+    // debe aclarar que solo hay 1 integrante confirmado.
+    $this->actingAs($professor)->get('/ideas')
+        ->assertOk()
+        ->assertSee('¿Iniciar el proyecto con 1 integrante aceptado? Se rechazará 1 postulación pendiente automáticamente.')
+        ->assertDontSee('Las postulaciones pendientes serán rechazadas');
+});
+
+test('el cartel de inicio usa plural cuando hay varias postulaciones pendientes', function () {
+    $professor = User::factory()->create();
+    $professor->assignRole('profesor');
+    $idea = ProjectIdea::factory()->create([
+        'title' => 'Proyecto con varias postulaciones pendientes',
+        'status' => 'available',
+        'max_students' => 3,
+    ]);
+    Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
+    Assignment::factory()->count(2)->create(['project_idea_id' => $idea->id, 'status' => 'applied']);
+
+    $this->actingAs($professor)->get("/ideas/{$idea->id}")
+        ->assertOk()
+        ->assertSee('¿Iniciar el proyecto con 1 integrante aceptado? Se rechazarán 2 postulaciones pendientes automáticamente.');
+});
+
+test('el cartel de inicio no menciona rechazos cuando no hay postulaciones pendientes', function () {
+    $professor = User::factory()->create();
+    $professor->assignRole('profesor');
+    $idea = ProjectIdea::factory()->create([
+        'title' => 'Proyecto sin postulaciones pendientes',
+        'status' => 'available',
+        'max_students' => 3,
+    ]);
+    Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
+
+    $this->actingAs($professor)->get('/ideas')
+        ->assertOk()
+        ->assertSee('¿Iniciar el proyecto con 1 integrante aceptado? El cupo definido es de 3 alumnos.')
+        ->assertDontSee('Se rechazará');
 });
 
 test('no se puede iniciar un proyecto sin integrantes aceptados', function () {

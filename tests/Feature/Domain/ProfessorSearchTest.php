@@ -26,6 +26,23 @@ beforeEach(function () {
     $this->profesor->assignRole('profesor');
 });
 
+test('el panel de alumnos no muestra la columna institucion', function () {
+    $student = User::factory()->create([
+        'name' => 'Camila Rojas',
+        'institution_name' => 'Escuela Técnica 3',
+        'career_year' => 2,
+    ]);
+    $student->assignRole('student');
+
+    $this->actingAs($this->profesor)->get('/alumnos')
+        ->assertOk()
+        ->assertSee('Camila Rojas')
+        ->assertSee('Año de carrera')
+        ->assertSee('2° año')
+        ->assertDontSee('Institución')
+        ->assertDontSee('Escuela Técnica 3');
+});
+
 test('el profesor busca alumnos por nombre', function () {
     $camila = User::factory()->create(['name' => 'Camila Rojas']);
     $camila->assignRole('student');

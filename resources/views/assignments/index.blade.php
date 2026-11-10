@@ -96,6 +96,10 @@
                                 title="Progreso de tus entregas"
                                 subtitle="Según las etapas aprobadas por el profesor." />
 
+                            <x-progress-table
+                                :updates="$studentUpdates"
+                                subtitle="Estado de cada avance que enviaste." />
+
                             @if ($studentUpdates->isNotEmpty())
                                 <div class="space-y-2">
                                     @foreach ($studentUpdates as $update)
@@ -114,14 +118,25 @@
                         <div class="border-t border-slate-100 pt-3">
                             <x-progress-form :assignment="$a" />
                         </div>
-                    @elseif (in_array($a->status, ['accepted', 'in_progress'], true))
-                        <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
-                            Los avances se habilitan cuando el proyecto está en desarrollo.
-                        </p>
-                    @elseif ($a->status === 'applied')
-                        <p class="border-t border-slate-100 pt-3 text-xs text-slate-500">
-                            Podrás subir avances cuando el profesor acepte tu postulación.
-                        </p>
+                    @elseif (in_array($a->status, ['applied', 'accepted', 'in_progress'], true))
+                        <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+                            <button type="button" disabled
+                                class="inline-flex cursor-not-allowed items-center gap-2 rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.8" stroke="currentColor" class="h-4 w-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Agregar avance
+                            </button>
+
+                            <p class="text-xs text-slate-500">
+                                @if ($a->status === 'applied')
+                                    Se habilita cuando el profesor apruebe tu postulación.
+                                @else
+                                    Se habilita cuando el profesor inicie el proyecto y quede en desarrollo.
+                                @endif
+                            </p>
+                        </div>
                     @endif
                 @endrole
             </div>

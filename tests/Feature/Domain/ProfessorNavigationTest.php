@@ -53,14 +53,19 @@ test('el dashboard del profesor muestra el resumen general', function () {
 });
 
 test('el profesor puede ver el listado de alumnos', function () {
-    $student = User::factory()->create(['name' => 'Alumno Uno', 'institution_name' => 'Escuela Técnica']);
+    $student = User::factory()->create([
+        'name' => 'Alumno Uno',
+        'career_year' => 2,
+    ]);
     $student->assignRole('student');
 
     $this->actingAs($this->profesor)->get('/alumnos')
         ->assertOk()
         ->assertSee('Alumnos')
         ->assertSee('Alumno Uno')
-        ->assertSee('Escuela Técnica');
+        ->assertSee('Año de carrera')
+        ->assertSee('2° año')
+        ->assertDontSee('Institución');
 });
 
 test('un alumno no puede ver el listado de alumnos', function () {

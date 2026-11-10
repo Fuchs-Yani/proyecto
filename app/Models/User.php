@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'institution_name', 'profile_photo_path'])]
+#[Fillable(['name', 'email', 'password', 'institution_name', 'career_year', 'profile_photo_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser // 2. Implementar FilamentUser
 {
@@ -35,6 +35,7 @@ class User extends Authenticatable implements FilamentUser // 2. Implementar Fil
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'career_year' => 'integer',
         ];
     }
 
@@ -52,6 +53,17 @@ class User extends Authenticatable implements FilamentUser // 2. Implementar Fil
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class, 'student_id');
+    }
+
+    /**
+     * Postulación activa del alumno, si ya se postuló a una idea.
+     */
+    public function activeAssignment(): ?Assignment
+    {
+        return $this->assignments()
+            ->active()
+            ->with('projectIdea')
+            ->first();
     }
 
     /**

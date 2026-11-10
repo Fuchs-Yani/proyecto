@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAssignmentRequest;
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\User;
 use App\Notifications\ApplicationReviewed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,13 +63,26 @@ class AssignmentController extends Controller
         // Bloquea la fila de la idea para controlar el cupo ante postulaciones simultáneas.
         $result = DB::transaction(function () use ($projectIdea): string {
             $idea = ProjectIdea::whereKey($projectIdea->getKey())->lockForUpdate()->firstOrFail();
+            $studentId = auth()->id();
+
+            // Serializa las postulaciones del alumno para que no pueda enviar
+            // dos solicitudes a ideas distintas al mismo tiempo.
+            User::whereKey($studentId)->lockForUpdate()->firstOrFail();
 
             $exists = Assignment::where('project_idea_id', $idea->id)
-                ->where('student_id', auth()->id())
+                ->where('student_id', $studentId)
                 ->exists();
 
             if ($exists) {
                 return 'duplicate';
+            }
+
+            $hasOtherApplication = Assignment::where('student_id', $studentId)
+                ->active()
+                ->exists();
+
+            if ($hasOtherApplication) {
+                return 'other_application';
             }
 
             if (! $idea->hasAvailableSlots()) {
@@ -77,7 +91,7 @@ class AssignmentController extends Controller
 
             Assignment::create([
                 'project_idea_id' => $idea->id,
-                'student_id' => auth()->id(),
+                'student_id' => $studentId,
                 'status' => 'applied',
                 'applied_at' => now(),
             ]);
@@ -87,6 +101,7 @@ class AssignmentController extends Controller
 
         return match ($result) {
             'duplicate' => back()->with('status', 'Ya te postulaste a esta idea.'),
+            'other_application' => back()->with('status', 'Ya estás postulado a otra idea. Solo podés postularte a una.'),
             'full' => back()->with('status', 'Esta idea ya alcanzó el cupo máximo de postulantes.'),
             default => back()->with('status', 'Postulación creada.'),
         };

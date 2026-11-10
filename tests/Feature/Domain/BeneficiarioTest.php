@@ -249,6 +249,99 @@ test('el beneficiario ve solo sus propias ideas en mis ideas', function () {
         ->assertDontSee('Idea de otro beneficiario');
 });
 
+test('el beneficiario ve la barra de avances por etapas en mis ideas', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $student = User::factory()->create();
+    $student->assignRole('student');
+
+    $idea = ProjectIdea::factory()->create([
+        'organizer_id' => $beneficiario->id,
+        'title' => 'Proyecto con etapas aprobadas',
+        'status' => 'in_development',
+    ]);
+
+    $assignment = Assignment::factory()->create([
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'status' => 'accepted',
+    ]);
+
+    foreach ([
+        [ProjectUpdate::STAGE_ANALYSIS, 'Análisis aprobado.', ProjectUpdate::STATUS_APPROVED, now()->subDays(3)],
+        [ProjectUpdate::STAGE_DESIGN, 'Diseño aprobado.', ProjectUpdate::STATUS_APPROVED, now()->subDays(2)],
+        [ProjectUpdate::STAGE_DEVELOPMENT, 'Desarrollo pendiente.', ProjectUpdate::STATUS_PENDING, null],
+        [ProjectUpdate::STAGE_TESTING, 'Pruebas rechazadas.', ProjectUpdate::STATUS_REJECTED, null],
+    ] as [$stage, $description, $status, $approvedAt]) {
+        ProjectUpdate::create([
+            'assignment_id' => $assignment->id,
+            'project_idea_id' => $idea->id,
+            'student_id' => $student->id,
+            'description' => $description,
+            'stage' => $stage,
+            'status' => $status,
+            'approved_at' => $approvedAt,
+            'approved_by' => $approvedAt ? $beneficiario->id : null,
+        ]);
+    }
+
+    $this->actingAs($beneficiario)->get('/mis-ideas')
+        ->assertOk()
+        ->assertSee('Proyecto con etapas aprobadas')
+        ->assertSee('Progreso del proyecto')
+        ->assertSee('Etapas aprobadas: 2 de 5')
+        ->assertSee('40%')
+        ->assertSee('Avances aprobados: 2')
+        ->assertSee('Última etapa aprobada: Diseño');
+});
+
+test('el beneficiario no ve avances pendientes ni rechazados en la barra de mis ideas', function () {
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $student = User::factory()->create();
+    $student->assignRole('student');
+
+    $idea = ProjectIdea::factory()->create([
+        'organizer_id' => $beneficiario->id,
+        'title' => 'Proyecto sin avances aprobados',
+        'status' => 'in_development',
+    ]);
+
+    $assignment = Assignment::factory()->create([
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'status' => 'accepted',
+    ]);
+
+    ProjectUpdate::create([
+        'assignment_id' => $assignment->id,
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'description' => 'Avance pendiente oculto',
+        'stage' => ProjectUpdate::STAGE_ANALYSIS,
+        'status' => ProjectUpdate::STATUS_PENDING,
+    ]);
+
+    ProjectUpdate::create([
+        'assignment_id' => $assignment->id,
+        'project_idea_id' => $idea->id,
+        'student_id' => $student->id,
+        'description' => 'Avance rechazado oculto',
+        'stage' => ProjectUpdate::STAGE_DESIGN,
+        'status' => ProjectUpdate::STATUS_REJECTED,
+    ]);
+
+    $this->actingAs($beneficiario)->get('/mis-ideas')
+        ->assertOk()
+        ->assertSee('Progreso del proyecto')
+        ->assertSee('Etapas aprobadas: 0 de 5')
+        ->assertSee('0%')
+        ->assertSee('Avances aprobados: 0')
+        ->assertDontSee('Última etapa aprobada');
+});
+
 test('un estudiante no puede acceder a mis ideas', function () {
     $student = User::factory()->create();
     $student->assignRole('student');

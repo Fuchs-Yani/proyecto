@@ -62,6 +62,12 @@
                 </div>
 
                 @if ($visibleUpdates->isNotEmpty())
+                    <x-progress-table
+                        :updates="$visibleUpdates"
+                        :subtitle="$canReviewUpdates
+                            ? 'Todos los avances enviados por los alumnos.'
+                            : 'Solo avances aprobados por el profesor.'" />
+
                     <div class="space-y-3">
                         @foreach ($visibleUpdates as $update)
                             <x-progress-card
@@ -304,6 +310,10 @@
                                 title="Progreso de tus entregas"
                                 subtitle="Según las etapas aprobadas por el profesor." />
 
+                            <x-progress-table
+                                :updates="$studentUpdates"
+                                subtitle="Estado de cada avance que enviaste." />
+
                             @if ($studentUpdates->isNotEmpty())
                                 <div class="space-y-2">
                                     @foreach ($studentUpdates as $update)
@@ -332,6 +342,14 @@
                         @endif
                     @endif
                 </div>
+            @elseif ($activeAssignment)
+                <p class="bg-white border border-slate-200 rounded-lg p-3 text-sm">
+                    Ya estás postulado a
+                    <a href="{{ route('ideas.show', $activeAssignment->projectIdea) }}" class="font-semibold underline">
+                        {{ $activeAssignment->projectIdea?->title ?? 'otra idea' }}
+                    </a>.
+                    Solo podés postularte a una idea, pero podés seguir viendo las demás.
+                </p>
             @elseif ($projectIdea->isPendingReview())
                 <p class="bg-white border rounded-lg p-3 text-sm">El profesor todavía no definió el cupo para esta idea.</p>
             @elseif (! $projectIdea->isOpenForApplications())
@@ -355,12 +373,7 @@
                     @hasanyrole('profesor|admin')
                         @if ($projectIdea->status === 'available' && $projectIdea->acceptedAssignmentsCount() > 0)
                             @can('startDevelopment', $projectIdea)
-                                <form method="POST" action="{{ route('ideas.start', $projectIdea) }}"
-                                    onsubmit="return confirm('¿Iniciar el proyecto con {{ $projectIdea->acceptedAssignmentsCount() }} integrante(s)? Las postulaciones pendientes serán rechazadas.');">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button class="px-3 py-1.5 bg-amber-500 text-white rounded-md text-sm hover:bg-amber-600">Iniciar proyecto</button>
-                                </form>
+                                @include('ideas._start-development-form', ['idea' => $projectIdea])
                             @endcan
                         @endif
                     @endhasanyrole

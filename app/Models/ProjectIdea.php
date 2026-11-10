@@ -236,6 +236,27 @@ class ProjectIdea extends Model
     }
 
     /**
+     * Cantidad de postulaciones que todavía esperan la decisión del profesor.
+     * Al iniciar el proyecto se rechazan automáticamente.
+     */
+    public function pendingAssignmentsCount(): int
+    {
+        if (array_key_exists('pending_assignments_count', $this->attributes)) {
+            return (int) $this->attributes['pending_assignments_count'];
+        }
+
+        if ($this->relationLoaded('assignments')) {
+            return $this->assignments
+                ->where('status', Assignment::STATUS_APPLIED)
+                ->count();
+        }
+
+        return $this->assignments()
+            ->where('status', Assignment::STATUS_APPLIED)
+            ->count();
+    }
+
+    /**
      * Indica si la idea ya alcanzó el máximo de archivos adjuntos permitidos.
      */
     public function hasReachedAttachmentLimit(): bool
