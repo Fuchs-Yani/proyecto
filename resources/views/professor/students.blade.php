@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <h2 class="text-xl font-bold text-slate-900">Alumnos</h2>
-            <p class="text-sm text-slate-500">Estudiantes registrados en el banco de ideas y proyectos.</p>
+            <p class="text-sm text-slate-500">Estudiantes registrados en IDEATÓN.</p>
         </div>
     </x-slot>
 

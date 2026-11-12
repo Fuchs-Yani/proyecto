@@ -22,7 +22,7 @@
         @elseif (auth()->user()->hasRole('profesor'))
             <div>
                 <h2 class="text-xl font-bold text-slate-900">Hola, {{ auth()->user()->name }}</h2>
-                <p class="text-sm text-slate-500">Este es el resumen del banco de ideas y proyectos.</p>
+                <p class="text-sm text-slate-500">Este es el resumen de tus ideas y proyectos.</p>
             </div>
 
             <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
@@ -256,7 +256,7 @@
                 @endif
             </section>
         @elseif (auth()->user()->hasRole('admin'))
-            <div class="bg-slate-800 text-slate-100 rounded-lg px-6 py-3 text-sm text-center">Banco de Ideas y Proyectos de Software</div>
+            <div class="bg-slate-800 text-slate-100 rounded-lg px-6 py-3 text-sm text-center">IDEATÓN</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <a href="{{ route('ideas.index') }}" class="bg-white border border-slate-200 rounded-lg p-4 hover:border-slate-400">
                     <div class="font-bold text-slate-900">Ideas</div>

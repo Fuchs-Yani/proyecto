@@ -395,7 +395,7 @@ class BeneficiaryProjectsSeeder extends Seeder
         }
 
         $content .= "BT\n/F1 8 Tf\n0.45 0.45 0.45 rg\n1 0 0 1 50 35 Tm\n("
-            .$this->pdfEscape('Documento generado para el Banco de Ideas y Proyectos de Software')
+            .$this->pdfEscape('Documento generado para IDEATÓN')
             ." ) Tj\nET\n";
 
         return $this->buildPdf($content);
@@ -525,7 +525,7 @@ class BeneficiaryProjectsSeeder extends Seeder
 
         $this->drawText($image, 60, 600, 22, $titleFont, '#2F3A36', 'Ambiente y personalidad');
         $this->drawText($image, 60, 640, 18, $regularFont, '#5B6470', $data['image_note']);
-        $this->drawText($image, 60, 760, 14, $regularFont, '#7A7A7A', 'Inspiración visual · Banco de Ideas y Proyectos de Software');
+        $this->drawText($image, 60, 760, 14, $regularFont, '#7A7A7A', 'Inspiración visual · IDEATÓN');
     }
 
     /**
@@ -576,7 +576,7 @@ class BeneficiaryProjectsSeeder extends Seeder
 
         $this->roundedRect($image, 340, 640, 620, 695, 12, $data['colors'][0]);
         $this->drawText($image, 370, 676, 18, $titleFont, '#FFFFFF', 'Acción principal');
-        $this->drawText($image, 60, 760, 14, $regularFont, '#7A7A7A', 'Inspiración visual · Banco de Ideas y Proyectos de Software');
+        $this->drawText($image, 60, 760, 14, $regularFont, '#7A7A7A', 'Inspiración visual · IDEATÓN');
     }
 
     private function drawText($image, int $x, int $y, int $size, string $font, string $hex, string $text): void

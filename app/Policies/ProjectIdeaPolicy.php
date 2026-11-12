@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\ProjectIdea;
+use App\Models\ProjectQuestion;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Foundation\Auth\User as AuthUser;
 
@@ -73,6 +74,92 @@ class ProjectIdeaPolicy
             && method_exists($authUser, 'hasRole')
             && $authUser->hasAnyRole(['admin', 'profesor'])
             && $projectIdea->status === 'available';
+    }
+
+    /**
+     * Los alumnos del equipo aceptado pueden preguntar al beneficiario
+     * mientras el proyecto está en análisis o en desarrollo.
+     */
+    public function askQuestion(AuthUser $authUser, ProjectIdea $projectIdea): bool
+    {
+        return $authUser->can('View:ProjectIdea')
+            && method_exists($authUser, 'hasRole')
+            && $authUser->hasRole('student')
+            && in_array($projectIdea->status, ['available', 'in_development'], true)
+            && $projectIdea->isTeamMember($authUser);
+    }
+
+    /**
+     * El beneficiario dueño (o un administrador) responde las preguntas.
+     */
+    public function answerQuestion(AuthUser $authUser, ProjectIdea $projectIdea): bool
+    {
+        if (! $authUser->can('View:ProjectIdea') || ! method_exists($authUser, 'hasRole')) {
+            return false;
+        }
+
+        return $authUser->hasRole('admin') || $projectIdea->organizer_id === $authUser->id;
+    }
+
+    /**
+     * El equipo redacta y edita la lista de requerimientos mientras el
+     * proyecto sigue en la fase de análisis (disponible).
+     */
+    public function manageRequirements(AuthUser $authUser, ProjectIdea $projectIdea): bool
+    {
+        return $authUser->can('View:ProjectIdea')
+            && method_exists($authUser, 'hasRole')
+            && $authUser->hasRole('student')
+            && $projectIdea->status === 'available'
+            && $projectIdea->isTeamMember($authUser);
+    }
+
+    /**
+     * El beneficiario dueño y el profesor (o admin) aprueban la lista. Se
+     * necesitan ambas aprobaciones para habilitar el inicio del proyecto.
+     */
+    public function approveRequirements(AuthUser $authUser, ProjectIdea $projectIdea): bool
+    {
+        if (! $authUser->can('View:ProjectIdea') || ! method_exists($authUser, 'hasRole')) {
+            return false;
+        }
+
+        $requirement = $projectIdea->requirement()->first();
+
+        if ($requirement === null || ! $requirement->isPending()) {
+            return false;
+        }
+
+        if ($authUser->hasAnyRole(['admin', 'profesor'])) {
+            return ! $requirement->hasProfessorApproval();
+        }
+
+        return $authUser->hasRole('beneficiario')
+            && $projectIdea->organizer_id === $authUser->id
+            && ! $requirement->hasBeneficiaryApproval();
+    }
+
+    /**
+     * El alumno que hizo la pregunta puede eliminarla mientras no tenga
+     * respuesta. El admin mantiene el control total.
+     */
+    public function deleteQuestion(AuthUser $authUser, ProjectIdea $projectIdea, ProjectQuestion $projectQuestion): bool
+    {
+        if (! $authUser->can('View:ProjectIdea') || ! method_exists($authUser, 'hasRole')) {
+            return false;
+        }
+
+        if ($projectQuestion->project_idea_id !== $projectIdea->id) {
+            return false;
+        }
+
+        if ($authUser->hasRole('admin')) {
+            return true;
+        }
+
+        return $authUser->hasRole('student')
+            && $projectQuestion->asked_by === $authUser->id
+            && ! $projectQuestion->isAnswered();
     }
 
     /**

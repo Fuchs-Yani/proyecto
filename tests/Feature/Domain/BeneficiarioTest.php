@@ -26,6 +26,28 @@ beforeEach(function () {
         ->syncPermissions(['ViewAny:ProjectIdea', 'View:ProjectIdea', 'ViewAny:Assignment', 'View:Assignment']);
 });
 
+test('se notifica al docente cuando un beneficiario publica una idea', function () {
+    Role::firstOrCreate(['name' => 'profesor', 'guard_name' => 'web']);
+
+    $professor = User::factory()->create();
+    $professor->assignRole('profesor');
+
+    $beneficiario = User::factory()->create();
+    $beneficiario->assignRole('beneficiario');
+
+    $this->actingAs($beneficiario)->post('/ideas', [
+        'title' => 'Sistema de turnos para el club',
+        'description' => 'Necesitamos organizar los turnos del club.',
+    ])->assertRedirect();
+
+    $notification = $professor->notifications()->first();
+
+    expect($notification)->not->toBeNull()
+        ->and($notification->data['type'])->toBe('project_idea_submitted')
+        ->and($notification->data['title'])->toBe('Nueva idea para revisar')
+        ->and($notification->data['message'])->toContain('Sistema de turnos para el club');
+});
+
 test('un beneficiario puede crear una idea', function () {
     $beneficiario = User::factory()->create();
     $beneficiario->assignRole('beneficiario');
@@ -140,7 +162,7 @@ test('el dashboard del beneficiario no muestra la barra secundaria de panel', fu
         ->assertDontSee('<header', false)
         ->assertDontSee('Nueva idea')
         ->assertSee('Mis ideas')
-        ->assertDontSee('Banco de Ideas y Proyectos de Software')
+        ->assertDontSee('Accedé al panel de administración.')
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
         ->assertDontSee('Actualiza tus datos y tu contraseña.')
         ->assertDontSee('Todas las postulaciones');

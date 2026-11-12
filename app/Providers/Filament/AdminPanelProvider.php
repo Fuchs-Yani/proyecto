@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->brandName('Banco de Ideas y Proyectos')
+            ->brandName('IDEATÓN')
             ->login()
             ->colors([
                 'primary' => Color::Amber,

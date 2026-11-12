@@ -13,6 +13,32 @@ test('profile page is displayed', function () {
     $response->assertOk();
 });
 
+test('el perfil muestra las secciones en español', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/profile')
+        ->assertOk()
+        ->assertSee('Mi perfil')
+        ->assertSee('Datos personales')
+        ->assertSee('Cambiar contraseña')
+        ->assertSee('Eliminar cuenta')
+        ->assertSee('Guardar cambios');
+});
+
+test('el perfil del alumno muestra su año de la carrera', function () {
+    Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+
+    $user = User::factory()->create(['career_year' => 3]);
+    $user->assignRole('student');
+
+    $this->actingAs($user)
+        ->get('/profile')
+        ->assertOk()
+        ->assertSee('Año de la carrera')
+        ->assertSee('3° año');
+});
+
 test('profile information can be updated', function () {
     $user = User::factory()->create();
 

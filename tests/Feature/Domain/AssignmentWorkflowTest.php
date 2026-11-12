@@ -2,6 +2,7 @@
 
 use App\Models\Assignment;
 use App\Models\ProjectIdea;
+use App\Models\ProjectRequirement;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -31,6 +32,17 @@ beforeEach(function () {
             'ViewAny:ProjectIdea', 'View:ProjectIdea',
         ]);
 });
+
+/**
+ * Crea requerimientos ya aprobados por el beneficiario y el profesor para
+ * habilitar el inicio del proyecto en las pruebas del flujo de postulaciones.
+ */
+function markAnalysisRequirementsApprovedForAssignmentFlow(ProjectIdea $idea): ProjectRequirement
+{
+    return ProjectRequirement::factory()->approved()->create([
+        'project_idea_id' => $idea->id,
+    ]);
+}
 
 test('apply sets applied_at and status applied', function () {
     $org = User::factory()->create();
@@ -116,6 +128,8 @@ test('el proyecto pasa a desarrollo recien cuando el cupo esta completo y todos 
         'project_idea_id' => $idea->id,
         'status' => 'applied',
     ]);
+
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
 
     $this->actingAs($professor)
         ->patch("/assignments/{$first->id}/estado", ['status' => 'accepted'])
@@ -208,6 +222,8 @@ test('con cupo de un alumno el proyecto pasa a desarrollo al aceptarlo', functio
         'status' => 'applied',
     ]);
 
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
+
     $this->actingAs($professor)
         ->patch("/assignments/{$assignment->id}/estado", ['status' => 'accepted'])
         ->assertSessionHas('status', 'Postulación aceptada. El proyecto pasó a desarrollo.');
@@ -231,6 +247,8 @@ test('el profesor inicia el proyecto con los aceptados aunque el cupo no este co
         'project_idea_id' => $idea->id,
         'status' => 'applied',
     ]);
+
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
 
     $this->actingAs($professor)
         ->patch("/assignments/{$accepted->id}/estado", ['status' => 'accepted']);
@@ -258,6 +276,8 @@ test('el cartel de inicio aclara cuantas postulaciones pendientes se rechazaran'
     Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
     Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'applied']);
 
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
+
     // El cupo de 2 está ocupado por 1 aceptado y 1 pendiente, pero el cartel
     // debe aclarar que solo hay 1 integrante confirmado.
     $this->actingAs($professor)->get('/ideas')
@@ -277,6 +297,8 @@ test('el cartel de inicio usa plural cuando hay varias postulaciones pendientes'
     Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
     Assignment::factory()->count(2)->create(['project_idea_id' => $idea->id, 'status' => 'applied']);
 
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
+
     $this->actingAs($professor)->get("/ideas/{$idea->id}")
         ->assertOk()
         ->assertSee('¿Iniciar el proyecto con 1 integrante aceptado? Se rechazarán 2 postulaciones pendientes automáticamente.');
@@ -291,6 +313,8 @@ test('el cartel de inicio no menciona rechazos cuando no hay postulaciones pendi
         'max_students' => 3,
     ]);
     Assignment::factory()->create(['project_idea_id' => $idea->id, 'status' => 'accepted']);
+
+    markAnalysisRequirementsApprovedForAssignmentFlow($idea);
 
     $this->actingAs($professor)->get('/ideas')
         ->assertOk()
@@ -315,6 +339,34 @@ test('no se puede iniciar un proyecto sin integrantes aceptados', function () {
         ->assertSessionHasErrors('start');
 
     expect($idea->fresh()->status)->toBe('available');
+});
+
+test('no se puede iniciar el proyecto hasta aprobar los requerimientos', function () {
+    $professor = User::factory()->create();
+    $professor->assignRole('profesor');
+    $idea = ProjectIdea::factory()->create([
+        'title' => 'Proyecto con requerimientos pendientes',
+        'status' => 'available',
+        'max_students' => 4,
+    ]);
+    Assignment::factory()->create([
+        'project_idea_id' => $idea->id,
+        'status' => 'accepted',
+    ]);
+    ProjectRequirement::factory()->pending()->create([
+        'project_idea_id' => $idea->id,
+    ]);
+
+    $this->actingAs($professor)
+        ->patch("/ideas/{$idea->id}/iniciar")
+        ->assertSessionHasErrors('start');
+
+    expect($idea->fresh()->status)->toBe('available');
+
+    $this->actingAs($professor)
+        ->get("/ideas/{$idea->id}")
+        ->assertOk()
+        ->assertSee('Faltan aprobar los requerimientos');
 });
 
 test('un alumno no puede iniciar el proyecto', function () {

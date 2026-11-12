@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>Banco de Ideas y Proyectos</title>
+        <title>IDEATÓN</title>
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -12,7 +12,7 @@
     <body class="font-sans antialiased bg-slate-100 text-slate-800">
         <header class="bg-white border-b border-slate-200">
             <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
-                <a href="/" class="font-bold text-slate-900">Banco de Ideas</a>
+                <a href="/" class="font-bold text-slate-900">IDEATÓN</a>
                 <a href="/" class="text-sm text-slate-500 underline">Volver al inicio</a>
             </div>
         </header>

@@ -12,8 +12,11 @@ test('registration screen shows the career year options for students', function 
     $this->get('/register')
         ->assertOk()
         ->assertSee('Año de la carrera')
+        ->assertSee('Seleccioná una sola opción')
         ->assertSee('2° año')
-        ->assertSee('3° año');
+        ->assertSee('3° año')
+        ->assertSee('name="career_year"', false)
+        ->assertSee('type="radio"', false);
 });
 
 test('new users can register', function () {

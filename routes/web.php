@@ -5,6 +5,8 @@ use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectIdeaController;
+use App\Http\Controllers\ProjectQuestionController;
+use App\Http\Controllers\ProjectRequirementController;
 use App\Http\Controllers\ProjectUpdateController;
 use App\Http\Controllers\StudentController;
 use App\Models\Assignment;
@@ -34,7 +36,7 @@ Route::get('/dashboard', function () {
 
     if (auth()->user()->hasRole('student')) {
         $ideas = ProjectIdea::query()
-            ->with(['organizer', 'attachments', 'tags'])
+            ->with(['organizer', 'attachments', 'tags', 'requirement'])
             ->withCount(['assignments as active_assignments_count' => fn ($query) => $query->whereNotIn('status', Assignment::INACTIVE_STATUSES)])
             ->where('status', 'available')
             ->latest()
@@ -231,6 +233,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/ideas/{projectIdea}/etiquetas', [ProjectIdeaController::class, 'updateTags'])->name('ideas.tags.update');
     Route::patch('/ideas/{projectIdea}/cupo', [ProjectIdeaController::class, 'updateQuota'])->name('ideas.quota.update');
     Route::patch('/ideas/{projectIdea}/iniciar', [ProjectIdeaController::class, 'startDevelopment'])->name('ideas.start');
+
+    // ANÁLISIS: el equipo pregunta, el beneficiario responde y ambos roles
+    // aprueban la lista de requerimientos antes de iniciar el proyecto.
+    Route::post('/ideas/{projectIdea}/preguntas', [ProjectQuestionController::class, 'store'])->name('ideas.questions.store');
+    Route::patch('/preguntas/{projectQuestion}/responder', [ProjectQuestionController::class, 'answer'])->name('questions.answer');
+    Route::delete('/preguntas/{projectQuestion}', [ProjectQuestionController::class, 'destroy'])->name('questions.destroy');
+    Route::patch('/ideas/{projectIdea}/requerimientos', [ProjectRequirementController::class, 'upsert'])->name('ideas.requirements.save');
+    Route::patch('/ideas/{projectIdea}/requerimientos/enviar', [ProjectRequirementController::class, 'submit'])->name('ideas.requirements.submit');
+    Route::patch('/ideas/{projectIdea}/requerimientos/aprobar', [ProjectRequirementController::class, 'approve'])->name('ideas.requirements.approve');
 
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');

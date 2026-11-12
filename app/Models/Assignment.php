@@ -40,6 +40,14 @@ class Assignment extends Model
     public const ACCEPTED_STATUSES = [self::STATUS_ACCEPTED, self::STATUS_IN_PROGRESS];
 
     /**
+     * Estados que forman parte del equipo del proyecto. Los alumnos con una
+     * postulación aplicada todavía no participan del análisis.
+     *
+     * @var array<int, string>
+     */
+    public const TEAM_STATUSES = [self::STATUS_ACCEPTED, self::STATUS_IN_PROGRESS, self::STATUS_COMPLETED];
+
+    /**
      * Estados desde los que el alumno puede abandonar el proyecto.
      *
      * @var array<int, string>

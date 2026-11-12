@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Banco de Ideas y Proyectos de Software</title>
+    <title>IDEATÓN</title>
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
@@ -12,7 +12,7 @@
     {{-- NAV --}}
     <header class="bg-white border-b border-slate-200">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <span class="font-bold text-slate-900">Banco de Ideas</span>
+            <span class="font-bold text-slate-900">IDEATÓN</span>
             <nav class="flex gap-3 text-sm">
                 @auth
                     <a href="{{ url('/dashboard') }}" class="px-4 py-2 bg-slate-900 text-white rounded-md">Panel</a>
@@ -30,8 +30,8 @@
 
     {{-- HERO --}}
     <section class="max-w-6xl mx-auto px-4 pt-10 pb-6 text-center">
-        <h1 class="text-3xl md:text-4xl font-bold text-slate-900">"Banco de Ideas y Proyectos de Software"</h1>
-        <p class="mt-2 text-slate-600">"Conectando estudiantes, docentes y beneficiarios para desarrollar soluciones tecnológicas reales"</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-900">IDEATÓN</h1>
+        <p class="mt-2 text-slate-600">"Conectando necesidades reales con talento en formación"</p>
         <div class="mt-6 flex flex-wrap justify-center gap-3">
             <a href="#explorar" class="px-5 py-2.5 bg-slate-900 text-white rounded-md text-sm">Explorar Proyectos</a>
         </div>

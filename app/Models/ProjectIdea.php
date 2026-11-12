@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ProjectIdea extends Model
@@ -92,15 +94,18 @@ class ProjectIdea extends Model
      * el cupo máximo no esté completo. Las postulaciones pendientes se
      * rechazan para cerrar la convocatoria.
      *
-     * Devuelve false si el proyecto no está disponible o no tiene al menos
-     * un integrante aceptado.
+     * Devuelve false si el proyecto no está disponible, no tiene al menos un
+     * integrante aceptado o los requerimientos todavía no fueron aprobados por
+     * el beneficiario y el profesor.
      */
     public function startDevelopment(): bool
     {
         return DB::transaction(function (): bool {
             $idea = static::whereKey($this->getKey())->lockForUpdate()->firstOrFail();
 
-            if ($idea->status !== 'available' || $idea->acceptedAssignmentsCount() < 1) {
+            if ($idea->status !== 'available'
+                || $idea->acceptedAssignmentsCount() < 1
+                || ! $idea->requirementsApproved()) {
                 return false;
             }
 
@@ -164,7 +169,8 @@ class ProjectIdea extends Model
 
     /**
      * Revisa si ya se cumplieron las condiciones para pasar a desarrollo:
-     * cupo definido, cupo completo de postulantes y todos aceptados.
+     * cupo definido, cupo completo de postulantes, todos aceptados y
+     * requerimientos aprobados por el beneficiario y el profesor.
      */
     public function syncDevelopmentStatus(): void
     {
@@ -180,7 +186,9 @@ class ProjectIdea extends Model
             ->whereIn('status', Assignment::ACCEPTED_STATUSES)
             ->count();
 
-        if ($active >= $this->max_students && $accepted >= $this->max_students) {
+        if ($active >= $this->max_students
+            && $accepted >= $this->max_students
+            && $this->requirementsApproved()) {
             $this->markAsInDevelopment();
 
             return;
@@ -265,6 +273,72 @@ class ProjectIdea extends Model
     }
 
     /**
+     * Indica si el usuario forma parte del equipo aceptado del proyecto.
+     * Las postulaciones pendientes todavía no participan del análisis.
+     */
+    public function isTeamMember(User $user): bool
+    {
+        return $this->assignments()
+            ->where('student_id', $user->id)
+            ->whereIn('status', Assignment::TEAM_STATUSES)
+            ->exists();
+    }
+
+    /**
+     * Alumnos que forman parte del equipo aceptado del proyecto.
+     *
+     * @return Collection<int, User>
+     */
+    public function teamMembers(): Collection
+    {
+        return $this->assignments()
+            ->whereIn('status', Assignment::TEAM_STATUSES)
+            ->with('student')
+            ->get()
+            ->pluck('student')
+            ->filter()
+            ->unique('id')
+            ->values();
+    }
+
+    /**
+     * Indica si el beneficiario y el profesor ya aprobaron la lista de
+     * requerimientos. Sin esta doble aprobación el proyecto no puede iniciar.
+     */
+    public function requirementsApproved(): bool
+    {
+        $requirement = $this->relationLoaded('requirement')
+            ? $this->getRelation('requirement')
+            : $this->requirement()->first();
+
+        return $requirement?->isApproved() ?? false;
+    }
+
+    /**
+     * Cantidad de preguntas que el equipo realizó al beneficiario.
+     */
+    public function questionsCount(): int
+    {
+        if (array_key_exists('questions_count', $this->attributes)) {
+            return (int) $this->attributes['questions_count'];
+        }
+
+        return $this->questions()->count();
+    }
+
+    /**
+     * Cantidad de preguntas que todavía esperan respuesta del beneficiario.
+     */
+    public function unansweredQuestionsCount(): int
+    {
+        if (array_key_exists('unanswered_questions_count', $this->attributes)) {
+            return (int) $this->attributes['unanswered_questions_count'];
+        }
+
+        return $this->questions()->whereNull('answered_at')->count();
+    }
+
+    /**
      * Filtra ideas por etiqueta exacta, nombre de la idea o de quien la publicó.
      *
      * Si el texto coincide con una etiqueta existente, se muestran únicamente
@@ -331,6 +405,22 @@ class ProjectIdea extends Model
     public function updates(): HasMany
     {
         return $this->hasMany(ProjectUpdate::class, 'project_idea_id');
+    }
+
+    /**
+     * Preguntas del equipo aceptado al beneficiario.
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(ProjectQuestion::class, 'project_idea_id')->latest();
+    }
+
+    /**
+     * Lista de requerimientos del sistema (una por proyecto).
+     */
+    public function requirement(): HasOne
+    {
+        return $this->hasOne(ProjectRequirement::class, 'project_idea_id');
     }
 
     public function tags(): BelongsToMany

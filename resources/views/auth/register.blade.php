@@ -1,6 +1,6 @@
 <x-guest-layout>
     <h1 class="text-xl font-bold text-slate-900 text-center">Registrarse</h1>
-    <p class="text-sm text-slate-500 text-center mt-1 mb-4">Banco de Ideas y Proyectos de Software</p>
+    <p class="text-sm text-slate-500 text-center mt-1 mb-4">IDEATÓN</p>
 
     <form method="POST" action="{{ route('register') }}">
         @csrf
@@ -33,12 +33,22 @@
 
         <!-- Año de la carrera (solo estudiantes) -->
         <div class="mt-4" id="career_year_container" style="display: {{ old('role') === 'student' ? 'block' : 'none' }};">
-            <x-input-label for="career_year" :value="__('Año de la carrera')" />
-            <select id="career_year" name="career_year" class="block mt-1 w-full border-slate-300 focus:border-slate-900 focus:ring-slate-900 rounded-md shadow-sm text-sm text-slate-700">
-                <option value="" disabled {{ old('career_year') ? '' : 'selected' }}>Selecciona tu año</option>
-                <option value="2" @selected(old('career_year') == 2)>2° año</option>
-                <option value="3" @selected(old('career_year') == 3)>3° año</option>
-            </select>
+            <x-input-label :value="__('Año de la carrera')" />
+            <p class="mt-1 text-xs text-slate-500">Seleccioná una sola opción.</p>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+                <label class="block cursor-pointer">
+                    <input type="radio" name="career_year" value="2" class="peer sr-only" @checked(old('career_year') == 2)>
+                    <span class="flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 peer-focus-visible:ring-offset-2">
+                        2° año
+                    </span>
+                </label>
+                <label class="block cursor-pointer">
+                    <input type="radio" name="career_year" value="3" class="peer sr-only" @checked(old('career_year') == 3)>
+                    <span class="flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition peer-checked:border-slate-900 peer-checked:bg-slate-900 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-slate-400 peer-focus-visible:ring-offset-2">
+                        3° año
+                    </span>
+                </label>
+            </div>
             <x-input-error :messages="$errors->get('career_year')" class="mt-2" />
         </div>
 
@@ -77,7 +87,7 @@
             const roleSelect = document.getElementById('role');
             const institutionContainer = document.getElementById('institution_container');
             const careerYearContainer = document.getElementById('career_year_container');
-            const careerYearSelect = document.getElementById('career_year');
+            const careerYearRadios = document.querySelectorAll('input[name="career_year"]');
 
             const isBeneficiary = roleSelect.value === 'beneficiario';
             const isStudent = roleSelect.value === 'student';
@@ -88,9 +98,12 @@
             }
 
             careerYearContainer.style.display = isStudent ? 'block' : 'none';
-            if (!isStudent) {
-                careerYearSelect.value = ''; // Limpia el año si cambia de opción
-            }
+            careerYearRadios.forEach(function (radio) {
+                radio.required = isStudent;
+                if (!isStudent) {
+                    radio.checked = false; // Limpia el año si cambia de opción
+                }
+            });
         }
 
         toggleRoleFields();

@@ -2,7 +2,7 @@
     <div class="max-w-6xl mx-auto px-4">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-6">
-                <a href="/" class="font-bold text-slate-900">Banco de Ideas</a>
+                <a href="/" class="font-bold text-slate-900">IDEATÓN</a>
                 <div class="hidden sm:flex gap-4 text-sm">
                     @auth
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">Panel</x-nav-link>

@@ -1,6 +1,6 @@
 <x-guest-layout>
     <h1 class="text-xl font-bold text-slate-900 text-center">Ingresar</h1>
-    <p class="text-sm text-slate-500 text-center mt-1 mb-4">Banco de Ideas y Proyectos de Software</p>
+    <p class="text-sm text-slate-500 text-center mt-1 mb-4">IDEATÓN</p>
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
 

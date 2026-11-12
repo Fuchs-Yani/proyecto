@@ -5,12 +5,18 @@ namespace Database\Seeders;
 use App\Models\Assignment;
 use App\Models\Attachment;
 use App\Models\ProjectIdea;
+use App\Models\ProjectQuestion;
+use App\Models\ProjectRequirement;
 use App\Models\ProjectUpdate;
 use App\Models\ProjectUpdateImage;
 use App\Models\Tag;
 use App\Models\User;
 use App\Notifications\ApplicationReviewed;
 use App\Notifications\ProjectIdeaReviewed;
+use App\Notifications\ProjectIdeaSubmitted;
+use App\Notifications\ProjectQuestionAnswered;
+use App\Notifications\ProjectRequirementApproved;
+use App\Notifications\ProjectRequirementSubmitted;
 use App\Notifications\ProjectUpdateReviewed;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -69,12 +75,13 @@ class DemoDataSeeder extends Seeder
         $this->seedProjects();
         $this->resetDemoActivity();
         $this->seedAssignments();
+        $this->seedAnalysis();
         $this->seedUpdates();
         $this->seedNotifications();
 
         $this->command?->info('Escenario demo completo cargado.');
         $this->command?->info('Contraseña de todas las cuentas: password123');
-        $this->command?->info('Profesor: profesor@test.com · Alumno: estudiante@test.com · Beneficiario: escuela@test.com · Admin: admin@admin.com');
+        $this->command?->info('Profesor: profesor@test.com · Alumno con actividad: juan.perez@test.com · Beneficiario: escuela@test.com · Admin: admin@admin.com');
     }
 
     private function seedUsers(): void
@@ -255,12 +262,16 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Deja los proyectos demo sin postulaciones ni avances para recrearlos.
-     * El borrado usa Eloquent para eliminar también las imágenes del disco.
+     * Deja los proyectos demo sin postulaciones, preguntas, requerimientos ni
+     * avances para recrearlos. El borrado usa Eloquent para eliminar también
+     * las imágenes del disco.
      */
     private function resetDemoActivity(): void
     {
         foreach ($this->projects as $idea) {
+            $idea->questions()->delete();
+            $idea->requirement()->delete();
+
             $idea->assignments()->with('updates.images')->get()->each(
                 fn (Assignment $assignment) => $assignment->delete(),
             );
@@ -380,6 +391,212 @@ class DemoDataSeeder extends Seeder
             'finished_at' => $finishedAt,
             'created_at' => $appliedAt,
             'updated_at' => $updatedAt,
+        ]);
+    }
+
+    private function seedAnalysis(): void
+    {
+        // Animalitos: el equipo ya preguntó y redactó los requerimientos. El
+        // beneficiario los aprobó, pero falta la aprobación del profesor, así
+        // que el proyecto todavía no puede iniciarse.
+        $this->question(
+            'animalitos',
+            $this->students['juan'],
+            "1. ¿Qué datos debe mostrar la ficha de cada animal?\n"
+            ."2. ¿Qué fotos o documentos podemos subir?\n"
+            .'3. ¿Quién actualiza el estado cuando un animal es adoptado?',
+            "1. Nombre, edad aproximada, sexo, tamaño, estado de salud y vacunas.\n"
+            ."2. Una foto principal y hasta dos fotos adicionales; no hace falta documentación médica.\n"
+            .'3. El refugio actualiza el estado desde el panel privado.',
+            $this->beneficiaries['refugio'],
+            now()->subDays(16),
+            now()->subDays(15),
+        );
+        $this->question(
+            'animalitos',
+            $this->students['juan'],
+            "1. ¿Cómo se reciben y registran las solicitudes de adopción?\n"
+            ."2. ¿Qué datos necesita el formulario?\n"
+            .'3. ¿Qué estados puede tener una solicitud?',
+            "1. Con un formulario en línea que queda registrado en el sistema.\n"
+            ."2. Nombre, contacto, vivienda, otras mascotas y motivación.\n"
+            .'3. Nueva, en revisión, aprobada o rechazada.',
+            $this->beneficiaries['refugio'],
+            now()->subDays(15),
+            now()->subDays(14),
+        );
+        $this->requirement(
+            'animalitos',
+            ProjectRequirement::STATUS_PENDING,
+            "1. Catálogo público de animales disponibles con foto, ficha y filtros por especie, tamaño y edad.\n"
+            ."2. Formulario de solicitud de adopción con los datos del interesado.\n"
+            ."3. Panel privado para publicar, editar y marcar animales como adoptados.\n"
+            .'4. Registro de solicitudes recibidas con su estado de seguimiento.',
+            now()->subDays(12),
+            $this->beneficiaries['refugio'],
+            null,
+        );
+
+        // Biblioteca: proyecto en desarrollo con requerimientos aprobados por
+        // el beneficiario y el profesor.
+        $this->question(
+            'biblioteca',
+            $this->students['sofia'],
+            "1. ¿Qué datos se registran de cada libro?\n"
+            ."2. ¿Qué datos se guardan de los socios?\n"
+            .'3. ¿Qué reportes necesitan cada mes?',
+            "1. Título, autor, ISBN, editorial y cantidad de ejemplares.\n"
+            ."2. Nombre, curso y contacto.\n"
+            .'3. Libros más prestados, préstamos activos y atrasos.',
+            $this->beneficiaries['escuela'],
+            now()->subDays(26),
+            now()->subDays(25),
+        );
+        $this->question(
+            'biblioteca',
+            $this->students['mateo'],
+            "1. ¿Quiénes pueden registrar préstamos y devoluciones?\n"
+            .'2. ¿Cómo se manejan los préstamos atrasados?',
+            "1. Los bibliotecarios y los docentes autorizados; el alumno solo consulta la disponibilidad.\n"
+            .'2. Se marca el préstamo como atrasado y se envía un aviso al socio.',
+            $this->beneficiaries['escuela'],
+            now()->subDays(25),
+            now()->subDays(24),
+        );
+        $this->requirement(
+            'biblioteca',
+            ProjectRequirement::STATUS_APPROVED,
+            "1. Catálogo con búsqueda por título, autor e ISBN.\n"
+            ."2. Registro de socios y de ejemplares disponibles.\n"
+            ."3. Préstamos y devoluciones con fecha de vencimiento.\n"
+            ."4. Reportes de libros más prestados, préstamos activos y atrasos.\n"
+            .'5. Vista de disponibilidad en tiempo real para alumnos y docentes.',
+            now()->subDays(23),
+            $this->beneficiaries['escuela'],
+            $this->professor,
+        );
+
+        // Prestamero: iniciado con un solo integrante y requerimientos aprobados.
+        $this->question(
+            'prestamero',
+            $this->students['valentina'],
+            "1. ¿Cómo se registran hoy los préstamos y los pagos de los clientes?\n"
+            ."2. ¿Qué datos se guardan de cada cliente?\n"
+            .'3. ¿Qué reportes necesitan para controlar la cobranza?',
+            "1. En una planilla por cliente, con la fecha del préstamo, el monto, la cantidad de cuotas y los pagos recibidos.\n"
+            ."2. Nombre, contacto, documento y dirección.\n"
+            .'3. Cobros del día, cuotas vencidas y saldo pendiente por cliente.',
+            $this->beneficiaries['beneficiario'],
+            now()->subDays(20),
+            now()->subDays(19),
+        );
+        $this->requirement(
+            'prestamero',
+            ProjectRequirement::STATUS_APPROVED,
+            "1. Alta de clientes y de préstamos con monto, interés y cuotas.\n"
+            ."2. Calendario de vencimientos y registro de pagos parciales.\n"
+            ."3. Control de saldos pendientes y cuotas vencidas.\n"
+            .'4. Reporte de cobros del día y del mes.',
+            now()->subDays(18),
+            $this->beneficiaries['beneficiario'],
+            $this->professor,
+        );
+
+        // Medicación: proyecto terminado con requerimientos aprobados.
+        $this->question(
+            'medicacion',
+            $this->students['lucas'],
+            "1. ¿Qué necesita ver el cuidador en la aplicación?\n"
+            .'2. ¿Cómo se avisa cuando falta una toma o está por terminar el medicamento?',
+            "1. El historial de tomas, los horarios y el stock disponible.\n"
+            .'2. Con una alerta en la aplicación y un aviso al cuidador cuando el medicamento está por terminar.',
+            $this->beneficiaries['lucia'],
+            now()->subDays(86),
+            now()->subDays(85),
+        );
+        $this->requirement(
+            'medicacion',
+            ProjectRequirement::STATUS_APPROVED,
+            "1. Registro de medicamentos, dosis y horarios.\n"
+            ."2. Recordatorios con confirmación de toma.\n"
+            ."3. Historial de dosis tomadas y omitidas.\n"
+            ."4. Vista de solo lectura para el cuidador.\n"
+            .'5. Texto grande, alto contraste y botones amplios.',
+            now()->subDays(84),
+            $this->beneficiaries['lucia'],
+            $this->professor,
+        );
+
+        // Facturación: segundo proyecto terminado con requerimientos aprobados.
+        $this->question(
+            'facturacion',
+            $this->students['lucas'],
+            "1. ¿Qué datos debe incluir una factura?\n"
+            .'2. ¿Qué reportes necesitan cada mes?',
+            "1. Número, fecha, cliente, detalle e importe.\n"
+            .'2. Total facturado, pagos recibidos y deuda pendiente.',
+            $this->beneficiaries['estudio'],
+            now()->subDays(66),
+            now()->subDays(65),
+        );
+        $this->requirement(
+            'facturacion',
+            ProjectRequirement::STATUS_APPROVED,
+            "1. Emisión de facturas con numeración y datos del cliente.\n"
+            ."2. Registro de pagos y saldos pendientes.\n"
+            ."3. Anulación de comprobantes con auditoría.\n"
+            .'4. Reportes mensuales de facturación y cobros exportables a PDF y Excel.',
+            now()->subDays(64),
+            $this->beneficiaries['estudio'],
+            $this->professor,
+        );
+    }
+
+    private function question(
+        string $project,
+        User $asker,
+        string $question,
+        ?string $answer = null,
+        ?User $answerer = null,
+        mixed $createdAt = null,
+        mixed $answeredAt = null,
+    ): ProjectQuestion {
+        $answered = $answer !== null;
+
+        return ProjectQuestion::create([
+            'project_idea_id' => $this->projects[$project]->id,
+            'asked_by' => $asker->id,
+            'question' => $question,
+            'answer' => $answer,
+            'answered_by' => $answered ? $answerer?->id : null,
+            'answered_at' => $answered ? ($answeredAt ?? $createdAt) : null,
+            'created_at' => $createdAt,
+            'updated_at' => $answered ? ($answeredAt ?? $createdAt) : $createdAt,
+        ]);
+    }
+
+    private function requirement(
+        string $project,
+        string $status,
+        string $content,
+        mixed $submittedAt,
+        ?User $beneficiary = null,
+        ?User $professor = null,
+    ): ProjectRequirement {
+        $beneficiaryAt = $beneficiary !== null ? $submittedAt->copy()->addDay() : null;
+        $professorAt = $professor !== null ? $submittedAt->copy()->addDays(2) : null;
+
+        return ProjectRequirement::create([
+            'project_idea_id' => $this->projects[$project]->id,
+            'content' => $content,
+            'status' => $status,
+            'submitted_at' => $submittedAt,
+            'beneficiary_approved_at' => $beneficiaryAt,
+            'beneficiary_approved_by' => $beneficiary?->id,
+            'professor_approved_at' => $professorAt,
+            'professor_approved_by' => $professor?->id,
+            'created_at' => $submittedAt,
+            'updated_at' => $professorAt ?? $beneficiaryAt ?? $submittedAt,
         ]);
     }
 
@@ -585,7 +802,11 @@ class DemoDataSeeder extends Seeder
 
     private function seedNotifications(): void
     {
-        $users = array_merge(array_values($this->students), array_values($this->beneficiaries));
+        $users = array_merge(
+            array_values($this->students),
+            array_values($this->beneficiaries),
+            [$this->professor],
+        );
 
         foreach ($users as $user) {
             $user->notifications()->delete();
@@ -629,6 +850,38 @@ class DemoDataSeeder extends Seeder
                 new ProjectIdeaReviewed($idea, $idea->max_students),
             );
         }
+
+        // El profesor tiene pendiente revisar la idea de turnos y aprobar los
+        // requerimientos de Animalitos.
+        $this->professor->notify(
+            new ProjectIdeaSubmitted($this->projects['turnos']),
+        );
+
+        $this->professor->notify(
+            new ProjectRequirementSubmitted($this->projects['animalitos']),
+        );
+
+        // Notificaciones de la fase de análisis: respuestas del beneficiario y
+        // listas de requerimientos que ya quedaron aprobadas.
+        ProjectQuestion::whereNotNull('answered_at')
+            ->with('projectIdea')
+            ->get()
+            ->each(function (ProjectQuestion $question): void {
+                $question->projectIdea?->teamMembers()->each(
+                    fn (User $student) => $student->notify(new ProjectQuestionAnswered($question)),
+                );
+            });
+
+        ProjectRequirement::where('status', ProjectRequirement::STATUS_APPROVED)
+            ->with('projectIdea')
+            ->get()
+            ->each(function (ProjectRequirement $requirement): void {
+                $idea = $requirement->projectIdea;
+
+                $idea?->teamMembers()->each(
+                    fn (User $student) => $student->notify(new ProjectRequirementApproved($idea)),
+                );
+            });
     }
 
     private function seedAttachments(ProjectIdea $idea, string $accent): void
@@ -737,9 +990,9 @@ class DemoDataSeeder extends Seeder
         }
 
         $y -= 12;
-        $content .= $this->pdfText('Documento demo del Banco de Ideas y Proyectos de Software', 9, false, 50, $y, '#64748B', 14);
+        $content .= $this->pdfText('Documento demo de IDEATÓN', 9, false, 50, $y, '#64748B', 14);
         $content .= "BT\n/F1 9 Tf\n0.39 0.45 0.55 rg\n1 0 0 1 50 40 Tm\n("
-            .$this->pdfEscape('Banco de Ideas y Proyectos de Software')
+            .$this->pdfEscape('IDEATÓN')
             .") Tj\nET\n";
 
         return $this->buildPdf($content);

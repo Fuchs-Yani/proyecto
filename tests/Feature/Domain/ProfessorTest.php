@@ -67,7 +67,7 @@ test('el dashboard del profesor no muestra módulos', function () {
     $this->actingAs($professor)->get('/dashboard')
         ->assertOk()
         ->assertSee('Panel')
-        ->assertDontSee('Banco de Ideas y Proyectos de Software')
+        ->assertDontSee('Accedé al panel de administración.')
         ->assertDontSee('Lista y revisa el detalle de las ideas y proyectos.')
         ->assertDontSee('Actualiza tus datos y tu contraseña.')
         ->assertDontSee('Todas las postulaciones');

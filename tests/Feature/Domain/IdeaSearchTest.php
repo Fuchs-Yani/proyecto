@@ -36,7 +36,10 @@ test('el buscador encuentra ideas por el nombre del beneficiario', function () {
         'organizer_id' => $maria->id,
         'title' => 'Proyecto de huerta comunitaria',
     ]);
-    ProjectIdea::factory()->create(['title' => 'Proyecto de robótica']);
+    ProjectIdea::factory()->create([
+        'organizer_id' => User::factory()->create(['name' => 'Carlos Pérez'])->id,
+        'title' => 'Proyecto de robótica',
+    ]);
 
     $this->actingAs($this->beneficiario)
         ->get('/ideas?search=María')

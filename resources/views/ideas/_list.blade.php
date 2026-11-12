@@ -23,6 +23,31 @@
             <div>
                 <a href="{{ route('ideas.show', $idea) }}" class="font-bold text-slate-900">{{ $idea->title }}</a>
                 <p class="text-sm text-slate-500">{{ $idea->organizer->name ?? '' }} · {{ ['available' => 'Disponible', 'in_development' => 'En desarrollo', 'completed' => 'Terminado', 'cancelled' => 'Cancelado'][$idea->status] ?? $idea->status }} · 📎 {{ $idea->attachments->count() }}@if ($idea->max_students !== null) · 👥 {{ $idea->activeAssignmentsCount() }}/{{ $idea->max_students }} postulantes @elseif ($idea->isPendingReview()) · ⏳ Pendiente de revisión @endif</p>
+                @if ($idea->requirement)
+                    @php
+                        $requirementStatusLabel = match ($idea->requirement->status) {
+                            \App\Models\ProjectRequirement::STATUS_DRAFT => 'borrador',
+                            \App\Models\ProjectRequirement::STATUS_PENDING => 'pendientes de aprobación',
+                            \App\Models\ProjectRequirement::STATUS_APPROVED => 'aprobados',
+                            default => 'sin redactar',
+                        };
+                    @endphp
+                    <p class="mt-1 text-xs text-slate-500">
+                        📝 Requerimientos: {{ $requirementStatusLabel }}
+                        @if ($idea->requirementsApproved())
+                            · ✓ beneficiario y profesor
+                        @elseif ($idea->requirement->hasBeneficiaryApproval())
+                            · falta aprobación del profesor
+                        @elseif ($idea->requirement->hasProfessorApproval())
+                            · falta aprobación del beneficiario
+                        @endif
+                    </p>
+                @endif
+                @if (auth()->check() && auth()->id() === $idea->organizer_id && $idea->unansweredQuestionsCount() > 0)
+                    <p class="mt-1 text-xs font-semibold text-amber-700">
+                        💬 {{ $idea->unansweredQuestionsCount() }} {{ $idea->unansweredQuestionsCount() === 1 ? 'consulta sin responder' : 'consultas sin responder' }}
+                    </p>
+                @endif
                 @if ($idea->tags->isNotEmpty())
                     <div class="mt-2 flex flex-wrap gap-1.5">
                         @foreach ($idea->tags as $tag)

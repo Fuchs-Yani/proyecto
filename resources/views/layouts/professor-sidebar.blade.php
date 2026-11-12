@@ -5,7 +5,7 @@
     class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 lg:static lg:translate-x-0"
     :class="open ? 'translate-x-0' : ''">
     <div class="flex h-16 items-center justify-between border-b border-slate-100 px-5">
-        <a href="/" class="text-xl font-bold text-slate-900">Banco de Ideas</a>
+        <a href="/" class="text-xl font-bold text-slate-900">IDEATÓN</a>
         <button type="button" @click="open = false" class="rounded p-1 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Cerrar menú">✕</button>
     </div>
 

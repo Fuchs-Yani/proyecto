@@ -30,6 +30,7 @@
             $viewer = auth()->user();
             $canReviewUpdates = $viewer?->hasAnyRole(['admin', 'profesor']) ?? false;
             $isBeneficiaryOwner = $viewer !== null && $projectIdea->organizer_id === $viewer->id;
+            $isTeamMember = $viewer?->hasRole('student') && $projectIdea->isTeamMember($viewer);
             $projectUpdates = $projectIdea->updates;
             $approvedProjectUpdates = $projectUpdates
                 ->where('status', \App\Models\ProjectUpdate::STATUS_APPROVED)
@@ -39,6 +40,10 @@
                 : $approvedProjectUpdates)
                 ->sortByDesc('created_at');
         @endphp
+
+        @if ($isTeamMember || $isBeneficiaryOwner || $canReviewUpdates)
+            @include('ideas._analysis')
+        @endif
 
         @if ($canReviewUpdates || $isBeneficiaryOwner)
             <x-project-progress
